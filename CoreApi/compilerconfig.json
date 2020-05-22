@@ -1,0 +1,18 @@
+﻿[
+  {
+    "outputFile": "wwwroot/css/views/home/index.css",
+    "inputFile": "wwwroot/css/views/home/index.scss"
+  },
+  {
+    "outputFile": "wwwroot/css/views/form/form.css",
+    "inputFile": "wwwroot/css/views/form/form.scss"
+  },
+  {
+    "outputFile": "wwwroot/css/admin/site.css",
+    "inputFile": "wwwroot/css/admin/site.scss"
+  },
+  {
+    "outputFile": "wwwroot/css/views/form/form_confirm.css",
+    "inputFile": "wwwroot/css/views/form/form_confirm.scss"
+  }
+]

@@ -1,0 +1,119 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <UserSecretsId>aspnet-CoreApi-89C63D6A-9CBB-4A61-8755-AE10F3C353AF</UserSecretsId>
+    <TypeScriptToolsVersion>2.4</TypeScriptToolsVersion>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+  
+    <AssemblyTitle>KLB KPI Center</AssemblyTitle>
+    <VersionPrefix>2.1</VersionPrefix>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="adminlte-ui\**" />
+    <Compile Remove="semantic-ui\**" />
+    <Compile Remove="wwwroot\lib\**" />
+    <Content Remove="adminlte-ui\**" />
+    <Content Remove="semantic-ui\**" />
+    <Content Remove="wwwroot\lib\**" />
+    <EmbeddedResource Remove="adminlte-ui\**" />
+    <EmbeddedResource Remove="semantic-ui\**" />
+    <EmbeddedResource Remove="wwwroot\lib\**" />
+    <None Remove="adminlte-ui\**" />
+    <None Remove="semantic-ui\**" />
+    <None Remove="wwwroot\lib\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Data\Migrations\20180419083408_RefactorAllTables.cs" />
+    <Compile Remove="Data\Migrations\20180419083408_RefactorAllTables.Designer.cs" />
+    <Compile Remove="Data\Migrations\20180424071833_AddCustomPropertyTable.cs" />
+    <Compile Remove="Data\Migrations\20180424071833_AddCustomPropertyTable.Designer.cs" />
+    <Compile Remove="Data\Migrations\20180504074037_UpdateTables-v2.cs" />
+    <Compile Remove="Data\Migrations\20180504074037_UpdateTables-v2.Designer.cs" />
+    <Compile Remove="Data\Migrations\20180516034554_UpdateTables-v4.cs" />
+    <Compile Remove="Data\Migrations\20180516034554_UpdateTables-v4.Designer.cs" />
+    <Compile Remove="Data\Migrations\20180713073123_AddUserFormValueStorageTable.cs" />
+    <Compile Remove="Data\Migrations\20180713073123_AddUserFormValueStorageTable.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="mota.xlsx" />
+    <None Remove="semantic-ui.rar" />
+    <None Remove="site.overrides" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EPPlus" Version="4.5.2.1" />
+    <PackageReference Include="Microsoft.AspNetCore" Version="2.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.1.0" />    
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="2.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="2.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.ViewCompilation" Version="2.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SpaServices" Version="2.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.1.1" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="2.1.1" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="2.1.0" />
+    <PackageReference Include="MSOffice.Object.Library" Version="15.0.4420.1018" />
+    <PackageReference Include="Oracle.ManagedDataAccess" Version="12.2.1100" />
+    <PackageReference Include="System.Linq" Version="4.3.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
+    <PackageReference Include="Microsoft.Office.Interop.Excel" Version="15.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <DotNetCliToolReference Include="Microsoft.EntityFrameworkCore.Tools.DotNet" Version="2.0.0" />
+    <DotNetCliToolReference Include="Microsoft.Extensions.SecretManager.Tools" Version="2.0.0" />
+    <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Areas\Admin\ViewModels\" />
+    <Folder Include="MyFolder\" />
+    <Folder Include="wwwroot\dist\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\KlbService\KlbService.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.DirectoryServices.Protocols">
+      <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.DirectoryServices.Protocols.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Update="UserData\EmailTemplates\Confirm.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="UserData\EmailTemplates\Decline.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties package_1json__JSONSchema="http://json.schemastore.org/project-1.0.0-beta4" /></VisualStudio></ProjectExtensions>
+
+</Project>
