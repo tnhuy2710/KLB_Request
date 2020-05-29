@@ -1,0 +1,67 @@
+﻿@model CoreApi.ViewModels.FormViewModels.FormConfirmViewModel
+
+@section css
+    {
+    <link rel="stylesheet" href="~/dist/datatables/datatables.min.css" />
+    <link rel="stylesheet" href="~/css/views/form/form_confirm.css" asp-append-version="true" />
+}
+
+@section Scripts
+    {
+    <script type="text/javascript" src="~/dist/datatables/datatables.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#table').DataTable({
+                "iDisplayLength": 25,
+                "columnDefs": [
+                    {
+                        "targets": 3,
+                        "orderable": false
+                    }
+                ],
+                "language": {
+                    "url": "../../dist/datatables/Vietnamese.json"
+                }
+            });
+        });
+    </script>
+}
+
+@if (Model?.Forms?.Count > 0)
+{
+    <h3>Danh sách các biểu mẫu đang chờ xét duyệt</h3>
+    <p><b>@Model.Description</b></p>
+    <p>Đợt <b>@Model.Name</b></p>
+    <p>Thời gian bắt đầu từ <b>@Model.StartDate.ToLocalTime().ToString("HH:mm 'ngày' dd/MM/yyyy")</b></p>
+    <p>Kết thúc vào lúc <b>@Model.CloseDate.ToLocalTime().ToString("HH:mm 'ngày' dd/MM/yyyy")</b></p>
+
+    <div class="ui divider"></div>
+
+    <table id="table" class="ui striped table" style="width:100%">
+        <thead>
+            <tr>
+                <td>STT</td>
+                <td>Họ tên/Chức vụ</td>
+                <td>Nơi công tác</td>
+                <td></td>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Forms.Count; i++)
+            {
+                <tr>
+                    <td>@(i + 1)</td>
+                    <td><div class="title main-color">@Model.Forms[i].AuthorName</div><div class="sub-title">@Model.Forms[i].AuthorTitle</div></td>
+                    <td>@Model.Forms[i].AuthorLevelName</td>
+                    <td><a href="@Url.Action("FormConfirmDetails", "Form", new { formId = Model.Id, userId = Model.Forms[i].AuthorId })" class="ui button main">Xem và Xét duyệt</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="empty-content">
+        <p>Không có biểu mẫu nào để thực hiện vào lúc này.</p>
+    </div>
+}

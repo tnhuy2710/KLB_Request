@@ -1,0 +1,65 @@
+﻿@{
+    ViewData["Title"] = "Index";
+}
+
+<form class="ui form" method="post" enctype="multipart/form-data" asp-controller="Form" asp-action="UploadFile">
+    <h4 class="ui dividing header">Thông tin Form</h4>
+    <div class="field">
+        <label>Name</label>
+        <input type="text" name="name" placeholder="Tên của biểu mẫu">
+    </div>
+    <div class="field">
+        <label>Mô tả chi tiết</label>
+        <input type="text" name="description" placeholder="Mô tả chi tiết công việc sẽ làm trên biểu mẫu này">
+    </div>
+    <div class="field">
+        <label>Vị trí của Sheet cần hiển thị trong file Excel tải lên</label>
+        <input type="number" name="sheetIndex" placeholder="Mô tả chi tiết công việc sẽ làm trên biểu mẫu này">
+    </div>
+    <div class="field">
+        <label>Upload file Excel</label>
+        <input type="file" name="file" />
+    </div>
+
+    <h4 class="ui dividing header">Thông tin các bước xét duyệt</h4>
+
+    @for (int i = 1; i <= 5; i++)
+    {
+        <div class="field">
+            <label>Tên của bước @i</label>
+            <input type="text" name="steps[@i][name]" placeholder="Tên công việc">
+        </div>
+        <div class="field">
+            <label>Mô tả của bước @i</label>
+            <input type="text" name="steps[@i][description]" placeholder="Mô tả công việc">
+        </div>
+        <div class="fields">
+            <div class="eight wide field">
+                <label>Nhóm Group được phép thực hiện công việc</label>
+                <input type="text" name="steps[@i][groupIds]" placeholder="Nhập nhóm các User được phép thực hiện công việc này" />
+            </div>
+            <div class="eight wide field">
+                <label>Công việc</label>
+                <select name="steps[@i][claims]" class="ui fluid dropdown">
+                    <option value="">Chọn công việc</option>
+                    <option value="Edit">Đánh giá</option>
+                    <option value="Confirm">Xét duyệt</option>
+                    <option value="View">Xem kết quả</option>
+                </select>
+            </div>
+        </div>
+        <div class="fields">
+            <div class="eight wide field">
+                <label>Ngày bắt đầu</label>
+                <input type="date" name="steps[@i][startDate]" placeholder="Chọn ngày bắt đầu" />
+            </div>
+            <div class="eight wide field">
+                <label>Ngày kết thúc</label>
+                <input type="date" name="steps[@i][endDate]" placeholder="Chọn ngày kết thúc" />
+            </div>
+        </div>
+        <div class="ui divider"></div>
+    }
+
+    <button class="ui button" tabindex="0"> Tạo mới</button>
+</form>

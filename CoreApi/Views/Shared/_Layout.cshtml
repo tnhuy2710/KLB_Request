@@ -1,0 +1,174 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using CoreApi.Models
+@using CoreApi.Security
+
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Standard Meta -->
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+    <title>@ViewData["Title"]</title>
+
+    <!-- Site css -->
+    <link rel="stylesheet" href="~/dist/semantic/semantic.min.css" />
+    <link id="site-style" rel="stylesheet" href="~/css/site.css" asp-append-version="true" />    
+
+    <!-- Custom site css -->
+    @RenderSection("css", required: false)
+    <style type="text/css">
+
+        body {
+            background-color: #FFFFFF;
+        }
+
+        .main.menu {
+            border: none;
+            -ms-border-radius: 0;
+            border-radius: 0;
+            box-shadow: none;
+            margin-top: 4em;
+            -ms-transition: box-shadow 0.5s ease, padding 0.5s ease;
+            -o-transition: box-shadow 0.5s ease, padding 0.5s ease;
+            -webkit-transition: box-shadow 0.5s ease, padding 0.5s ease;
+            transition: box-shadow 0.5s ease, padding 0.5s ease;
+        }
+
+            .main.menu .item img.logo {
+                margin-right: 1.5em;
+            }
+
+        .overlay {
+            float: left;
+            margin: 0em 3em 1em 0em;
+        }
+
+            .overlay .menu {
+                left: 0;
+                position: relative;
+                transition: left 0.5s ease;
+            }
+
+        .main.menu.fixed {
+            background-color: #FFFFFF;
+            border: 1px solid #DDD;
+            box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .overlay.fixed .menu {
+            left: 800px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="ui main menu">
+        <div class="ui container">
+            <div class="item" style="padding: 0;">
+                <img class="logo" src="~/images/logo.png" />
+            </div>
+            <div class="clearfix item"></div>
+            <a href="@Url.Action("Index", "Home")" class="item active">
+                <i class="home icon"></i>
+                Chương trình KPI Center
+            </a>
+
+            <div class="right item">
+                @await Html.PartialAsync("_LoginPartial")
+            </div>
+        </div>
+    </div>
+
+    @if (SignInManager.IsSignedIn(User))
+    {<div class="ui main menu">
+            <div class="ui container ">
+                <div class="main-nav222">
+
+                    <ul>
+                        <li>
+                            <a href="@Url.Action("Index", "Home")" class="home">
+                                <img alt="Trang chủ" src="~/images/home.png">
+
+                            </a>
+                        </li>
+                        @if (User.FindFirst(x => x.Type.Equals(ClaimContants.Role_Emp))!=null && User.FindFirst(x => x.Type.Equals(ClaimContants.Role_Emp)).Value != "0")
+                        {
+                            <li>
+                                <a target="_blank" href="http://192.168.83.10:8086/Default.aspx?pub=@User.FindFirst(x => x.Type.Equals(ClaimContants.Role_Emp)).Value">
+
+                                    Quản trị
+                                </a>
+
+
+                            </li>
+                        }
+                        <li class="main-nav222-li-right">
+
+                        </li>
+                    </ul>
+
+                    <div class="clear"></div>
+                </div>
+            </div>
+        </div>
+    }
+    <div class="ui container body-content">
+        @RenderBody()
+    </div>
+
+    <footer class="ui inverted vertical footer segment">
+        <div class="ui center aligned container">
+            <div class="ui stackable inverted divided grid">
+                <div class="three wide ">
+                    <img class="logo" src="~/images/logo.png" />
+                </div>
+                <div class="three wide copyright">
+                    <p>
+                        <span style="font-size: 12px; font-family: Arial;">
+                            <span style="font-family: Arial;">Số 40-42-44 Phạm Hồng Thái, P. Vĩnh Thanh Vân, Tp. Rạch Giá, Tỉnh Kiên Giang </span><br>
+                            <span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"><strong>Điện thoại:</strong></span><span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"> </span><span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;" _face="Arial">(<span style="font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; float: none; font-size: 12px; display: inline !important; font-family: arial, sans-serif; color: #001049;">0297</span>) 3869 950 - 3877 541</span><span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"> - </span><span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"><strong>Fax:</strong></span><span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"> </span><span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;">(<span style="font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; float: none; font-size: 12px; display: inline !important; font-family: arial, sans-serif; color: #001049;">0297</span>) 3871 171 - 3877 538</span><br>
+                            <span style="border: 0px; margin: 0px; padding: 0px; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"><strong>Hotline:</strong></span><span style="border: 0px; margin: 0px; padding: 0px; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"> 1900 6929 - (028) 7309 6929 -&nbsp;<span style="border: 0px; margin: 0px; padding: 0px; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial; color: #000000;"><strong style="border: 0px; margin: 0px; padding: 0px; font-size: 12px; font-weight: bold;">SWIFT code:</strong></span><span style="border: 0px; margin: 0px; padding: 0px; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial; color: #000000;"><span class="Apple-converted-space">&nbsp;</span>KLBKVNVX</span></span><br style="font-family: Arial; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px;">
+                            <span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"><strong>Email:</strong></span><span style="font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: normal; letter-spacing: normal; line-height: normal; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; -webkit-text-stroke-width: 0px; float: none; display: inline !important; font-family: Arial;"> kienlong@kienlongbank.com - chamsockhachhang@kienlongbank.com</span>
+                        </span>
+                    </p>
+                    <p style="font-size: 12px; font-family: Arial; margin-bottom: 16px;">
+                        Copyright © 2014 - 2018 Kienlongbank
+                    </p>
+                </div>
+                <div class="three wide ">
+
+                </div>
+                <div class="seven wide ">
+
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Site scripts -->
+    <script src="~/dist/jquery-3.3.1.min.js"></script>
+    <script src="~/dist/semantic/semantic.min.js"></script>
+    <!-- Custom site scripts -->
+    @RenderSection("Scripts", required: false)
+
+    <script>
+        $(document).ready(function () {
+
+            // show dropdown on hover
+            $('.main.menu  .ui.dropdown').dropdown({
+                on: 'hover'
+            });
+
+
+            $(".account-info.dropdown").dropdown({ on: 'hover' });
+
+        });
+    </script>
+</body>
+</html>

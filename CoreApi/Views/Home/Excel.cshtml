@@ -1,0 +1,219 @@
+﻿@{
+    ViewData["Title"] = "Excel Export";
+}
+<h2>@ViewData["Title"]</h2>
+<h3>@ViewData["Message"]</h3>
+
+@{
+    if (ViewData["Content"] != null)
+    {
+        <table class="e-content">
+            <tbody>
+                @Html.Raw(ViewData["Content"])
+            </tbody>
+        </table>
+
+
+        <button id="submit-form">Gửi biểu mẫu</button>
+    }
+}
+
+@section Scripts
+{
+    <!-- AutoNumeric Library -->
+    <script src="~/dist/autoNumeric.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            $("input[id^=number]").keydown(function (e) {
+
+                // Allow: backspace, delete, tab, escape, enter and .
+                if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 110, 190, 188]) !== -1 ||
+
+                    // Allow: Ctrl+A, Command+A
+                    (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
+
+                    // Allow: home, end, left, right, down, up
+                    (e.keyCode >= 35 && e.keyCode <= 40)) {
+
+                    // let it happen, don't do anything
+                    return;
+                }
+
+                // Ensure that it is a number and stop the keypress
+                if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                    e.preventDefault();
+                }
+            });
+
+            // Handle add Plus Row button
+            $("tr[groupindex]").before('<div class="add-row"><i class="fas fa-plus-square"></i></div>');
+
+            //$("tr[groupindex]").each(function () {
+
+            //    $(this).after('<tr type="base" style="display: none">' + $(this).html() + '</tr>');
+
+            //});
+
+            // Detect change
+            $("td[data-address=33-4]").on('change', function() {
+                console.log("Detect changes");
+            });
+
+            // Handle plus button clicked
+            $(".add-row").on('click', function () {
+
+                // Get Html of current row
+                var row = $(this).next();
+
+                if (row !== undefined) {
+
+                    // Add Row
+                    var nextRow = row.clone();
+
+                    // Edit Id
+                    nextRow.removeAttr('groupindex').attr('type', 'added');
+
+                    var isFirstRow = true;
+
+                    // Handle first row
+                    if ($(this).prev().attr('type') === 'added')
+                        isFirstRow = false;
+
+                    // Edit address
+                    nextRow.find('td').each(function (index) {
+
+                        // Select Input
+                        var inputEle = $(this).find('input');
+
+                        if (inputEle !== 'undefined' && inputEle.length > 0) {
+
+                            // Calculator address
+                            var address = inputEle.data('address');
+
+                            // Split address
+                            var addresses = address.split('-');
+
+                            if (addresses.length === 2) {
+
+                                // Row Index
+                                var rowIndex = addresses[0];
+
+                                // Cell Index/Column Index
+                                var cellIndex = addresses[1];
+
+                                //
+                                var oldAddress = rowIndex + '-' + cellIndex;
+
+                                if (isFirstRow) {
+                                    $('input[name=' + oldAddress + ']').attr('data-base', oldAddress);
+                                }
+
+                                // Update New Address for current row
+                                $('input[name=' + oldAddress + ']')
+                                    .val('');   // Clear value
+                            }
+                        }
+                        
+                    });
+
+                    $(this).before(nextRow);
+
+                    // Add Button for 
+                    nextRow.before('<div class="delete-row"><i class="fas fa-minus-square"></i></div>');
+
+                    // Update index all rows added
+                    updateIndex();
+
+                    $("td[data-address=33-4]").trigger('change');
+                }
+
+                // Handle delete button clicked
+                $(".delete-row").on('click', function() {
+
+                    var row = $(this).next();
+
+                    if (row !== 'undefined' && row.length > 0) {
+
+                        // Delete row and button
+                        row.remove();
+                        $(this).remove();
+
+                        // Update index all rows added
+                        updateIndex();
+                    }
+                });
+            });
+        });
+
+        function updateIndex() {
+
+            $('table.e-content tr').each(function(index) {
+
+                // Select all td 
+                $(this).find('td').each(function(tdIndex) {
+
+                    // Get Address
+                    var address = $(this).data('address');
+
+                    if (address !== 'undefined' && address.length > 0) {
+
+                        var addresses = address.split('-');
+                        if (addresses.length === 2) {
+
+                            var cellIndex = addresses[1];
+                            var newAddress = index + 1 + '-' + cellIndex;
+
+                            // Update for td
+                            $(this).attr('data-address', newAddress);
+
+                            // Update address for all input
+                            $(this).find('input').each(function(eleIndex) {
+
+                                var address = $(this).data('address');
+
+                                // If new address are not equals old address then update new address and all childs are inherit from base
+                                if (newAddress !== address) {
+
+                                    // Update Address
+                                    $(this).attr('data-address', newAddress);
+                                    $(this).attr('name', newAddress);
+
+                                    // Find all childs element base on this input
+                                    $('table.e-content tr td input[base=' + address + ']').each(function(childIndex) {
+
+                                        // Update Base Address
+                                        $(this).attr('data-base', newAddress);
+
+                                    });
+
+                                }
+
+                            });
+                            
+                        }
+                    }
+
+                });
+
+            });
+
+        }
+
+        // Init Input Format
+        new AutoNumeric.multiple('input[id^=currency]',
+            {
+                decimalPlaces: 0
+            });
+
+        new AutoNumeric.multiple('input[id^=percent]',
+            {
+                decimalPlaces: 2,
+                rawValueDivisor: 100,
+                currencySymbol: " %",
+                currencySymbolPlacement: 's',
+
+            });
+
+    </script>
+}

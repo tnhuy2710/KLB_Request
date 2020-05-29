@@ -1,0 +1,53 @@
+﻿@using System.Collections.Generic
+@using System.Linq
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http.Authentication
+@model LoginViewModel
+@inject SignInManager<User> SignInManager
+
+@{
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<div style="margin-top: 80px; margin-bottom: 200px">
+    <h2>Đăng nhập</h2>
+    <p style="margin-bottom: 16px">Vui lòng đăng nhập để sử dụng đầy đủ tính năng</p>
+
+    <div class="ui grid">
+        <div class="six wide column">
+            <form asp-route-returnurl="@ViewData["ReturnUrl"]" method="post">
+                <div asp-validation-summary="All" class="text-danger"></div>
+
+                <div class="ui input left icon fluid">
+                    <i class="user icon"></i>
+                    <input type="text" asp-for="UserName" placeholder="Tên tài khoản">
+                </div>
+
+                <div class="ui input left icon fluid">
+                    <i class="lock icon"></i>
+                    <input type="password" asp-for="Password" placeholder="Mật khẩu">
+                </div>
+
+                <div class="ui divider"></div>
+
+                <button type="submit" class="ui button main fluid">
+                    Đăng nhập
+                </button>
+            </form>
+        </div>
+        <div class="ten wide column"></div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
+
+@section css
+{
+    <style type="text/css">
+        form div.ui.input {
+            margin-bottom: 10px;
+        }
+    </style>
+}

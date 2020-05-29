@@ -1,0 +1,38 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using CoreApi.Models
+@using CoreApi.Security
+
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="navbar-right">
+        @*<ul class="nav navbar-nav navbar-right">
+            <li>
+                <a asp-area="" asp-controller="Manage" asp-action="Index" title="Manage">Xin chào @UserManager.GetUserName(User)!</a>
+            </li>
+            <li>
+                <button type="submit" class="btn btn-link navbar-btn navbar-link">Thoát</button>
+            </li>
+        </ul>*@
+        <div class="item ui dropdown account-info">
+            <div class="content">
+                <div class="ui sub header">@User.FindFirst(x => x.Type.Equals(ClaimContants.Fullname)).Value</div>
+                @User.FindFirst(x => x.Type.Equals(ClaimContants.Title)).Value
+            </div>
+
+            <div class="menu">
+                <div class="header">Tài khoản</div>
+                <button style="width: 100%" type="submit" class="item">Đăng xuất</button>
+            </div>
+        </div>
+    </form>
+}
+else
+{
+    <a href="@Url.Action("Login", "Account")" class="ui button login">
+        <i class="user icon"></i>
+        Đăng nhập
+    </a>
+}

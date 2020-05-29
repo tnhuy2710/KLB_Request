@@ -1,0 +1,513 @@
+﻿@model CoreApi.ViewModels.FormViewModels.FormItemDetailsViewModel
+@{
+    var currentIndex = 0;
+}
+
+@section css
+    {
+    <link rel="stylesheet" href="~/css/views/form/form.css" asp-append-version="true" />
+}
+
+<p>Người gửi: <b class="main-color">@Model.AuthorName</b></p>
+<p>Được gửi vào lúc: <b>@Model.SubmitDate.ToLocalTime().ToString("HH:mm 'ngày' dd/MM/yyyy")</b></p>
+
+<div class="ui divider"></div>
+
+@if (!string.IsNullOrEmpty(Model.HtmlContent))
+{
+    if (Model.StepsDetails.Count > 1)
+    {
+        <div class="ui tablet stackable steps">
+            @for (var i = 0; i < Model.StepsDetails.Count; i++)
+            {
+                var additionClass = "";
+
+                if (!Model.StepsDetails[i].IsActive)
+                {
+                    additionClass = "disabled";
+                }
+                if (Model.StepsDetails[i].IsCurrent)
+                {
+                    additionClass = "active";
+                    currentIndex = i;
+                }
+
+                <div class="step @additionClass" style="width: @(100 / Model.StepsDetails.Count)%">
+                    <div class="step-container">
+                        <div class="step-index">@(i + 1)</div>
+                        <div class="content">
+                            <div class="title">@Model.StepsDetails[i].Name</div>
+                            <div class="description">@Model.StepsDetails[i].Description</div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.StepsDetails[i].InfoTitle))
+                        {
+                            <div class="info">
+                                <div class="name">@Model.StepsDetails[i].InfoTitle</div>
+                                <div class="date">@Model.StepsDetails[i].InfoDescription</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="ui divider"></div>
+
+    <div id="form-content">
+        <div class="ui inverted dimmer">
+            <div class="ui text loader">Đang gửi thông tin đến máy chủ</div>
+        </div>
+
+        <div class="buttons_layout">
+            <button id="print" class="ui blue labeled icon button">
+                <i class="print icon"></i>
+                In biểu mẫu
+            </button>
+            <button id="zoom-in" class="ui labeled icon button">
+                <i class="search plus icon"></i>
+                Phóng to
+            </button>
+            <button id="zoom-out" class="ui labeled icon button">
+                <i class="search minus icon"></i>
+                Thu nhỏ
+            </button>
+            <button id="zoom-reset" class="ui labeled icon button">
+                <i class="undo icon"></i>
+                Hoàn tác
+            </button>
+
+            <button class="ui button main submit_form" id="accept-form">Duyệt</button>
+            <button class="ui button red submit_form" id="decline-form">Từ chối</button>
+        </div>
+
+        <div class="form-table">
+            <table class="e-content" style="zoom: 0.8">
+                <tbody>
+                    @Html.Raw(Model.HtmlContent)
+                </tbody>
+            </table>
+        </div>
+
+        <div class="buttons_layout">
+            <button class="ui button main submit_form" id="accept-form">Duyệt</button>
+            <button class="ui button red submit_form" id="decline-form">Từ chối</button>
+        </div>
+
+        <div class="horizontal-bar">
+            <div class="scrollbar"></div>
+        </div>
+    </div>
+
+
+    @section Scripts {
+        <script src="~/dist/autoNumeric.min.js"></script>
+        <script type="text/javascript" src="~/js/site.js"></script>
+        <script src="~/js/modal.js"></script>
+        <script src="~/dist/printThis.js"></script>
+        <script type="text/javascript">
+
+        $(document).ready(function() {
+
+            var zoomLevel = 0.8;
+            var isShowChosenModal = !(@(currentIndex + 2) >= @(Model.StepsDetails.Count));
+
+            $("#zoom-in").click(function () {
+
+                zoomLevel += 0.05
+                alert(zoomLevel);
+              //  $(".e-content").css("zoom", zoomLevel += 0.05);
+                $('.e-content').css({
+                    'transform': 'scale(' + zoomLevel+')',
+                    'transform-origin': zoomLevel,
+                    '-moz-transform-origin': zoomLevel,         /*Firefox*/
+                    '-ms-transform-origin': zoomLevel,         /*IE*/
+                    '-webkit-transform-origin': zoomLevel,         /*Opera/Safari*/
+                    '-moz-transform': 'scale(' + zoomLevel+')', /*Firefox*/
+                    '-ms-transform': 'scale(' + zoomLevel+')', /*IE*/
+                    '-webkit-transform': 'scale(' + zoomLevel+')'  /*Opera/Safari*/
+                });
+
+                updateScrollBar();
+            });
+
+            $("#zoom-out").click(function() {
+                $(".e-content").css("zoom", zoomLevel -= 0.05);
+                updateScrollBar();
+            });
+
+            $("#zoom-reset").click(function() {
+                zoomLevel = 0.8;
+                $(".e-content").css("zoom", zoomLevel);
+                updateScrollBar();
+            });
+
+            // Init dropdown
+            // Show loading button for submit
+            $("button#accept-form").addClass("loading");
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetUsersSubmit", new {formId = Model.FormId, formDataId = Model.Id})",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function(msg) {
+
+                    $.each(msg.Data,
+                        (index, item) =>
+                        {
+                            $("#accept-list > div.menu").append('<div class="item" data-value="' + item.EmpCode + '"><div class="title">' + item.FullName + '</div><div class="sub-title">' + item.Title + '</div></div>');
+                        });
+                },
+                statusCode: {
+                    400: function(resp) {
+                        
+                        if (resp.responseJSON.StatusCode === "400.2") {
+                            isShowChosenModal = false;
+                        }
+
+                        console.log(resp.responseJSON);
+                    }
+                }
+            }).always(function() {
+                $("button#accept-form").removeClass("loading");
+            });
+            $("#accept-list").dropdown();
+
+            // Từ chối button
+            $("button#decline-form").click(function() {
+
+                // Show leave modal
+                $("#leave-message").modal({
+                    autofocus: false
+                }).modal('show');
+
+            });
+
+            // Submit decline request
+            $("#decline-submit").click(function() {
+
+                $("#leave-message").modal('hide');
+
+                $("#form-content").showDimmer();
+
+                var message = $("textarea#message-feedback").val();
+                var postData = { Message: message };
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("DeclineFormSubmit", new {formId = Model.FormId, userId = Model.AuthorId})",
+                    data: JSON.stringify(postData),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function(msg) {
+
+                        $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message:
+                                    'Biểu mẫu đã được chuyển sang trạng thái bị <b>Từ Chối</b> thành công! Một Email đã được gửi đến người thực hiện công việc trước đó kèm theo nội dung tin nhắn từ bạn.',
+                            },
+                            userInput => {
+                                location.reload();
+                            });
+
+                    },
+                    statusCode: {
+                        400: function(resp) {
+                            console.log(resp.responseJSON);
+
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: resp.responseJSON.Message
+                            });
+                        }
+                    }
+                }).always(function() {
+                    $("#form-content").hideDimmer();
+                });
+            });
+
+            // Accept button click
+            $("button#accept-form").click(function() {
+
+                if ($(this).hasClass("loading")) {
+
+                    $("#info-modal").showModal({
+                        title: 'Thông báo',
+                        message: 'Vui lòng chờ trong khi chương trình đang lấy thông tin cấp duyệt tiếp theo.'
+                    });
+
+                } else {
+
+                    $('#confirm-modal').showModal({
+                            title: 'Thông báo',
+                            message:
+                                'Bạn có chắc chắn <b>Duyệt</b> hay không? Một khi đã gửi bạn sẽ không thể hoàn lại hành động của mình.'
+                        },
+                        result => {
+                            if (result) {
+
+                                if (!isShowChosenModal) {
+                                    // Hide modal
+                                    $("#choose-user").modal('hide');
+
+                                    // Show dimmer
+                                    $("#form-content").showDimmer();
+
+                                    // Build body content
+                                    var postData = { EmpCodeChosen: "last" };
+                                    var jsonData = JSON.stringify(postData);
+
+                                    $.ajax({
+                                        type: "POST",
+                                        url:
+                                            "@Url.Action("AcceptFormSubmit", new {formId = Model.FormId, userId = Model.AuthorId})",
+                                        contentType: "application/json; charset=utf-8",
+                                        dataType: "json",
+                                        data: jsonData,
+                                        success: function(msg) {
+
+                                            $('#info-modal').showModal({
+                                                    title: 'Thông báo',
+                                                    message: msg.Data
+                                                },
+                                                userInput => {
+                                                    location.reload();
+                                                });
+
+                                        },
+                                        statusCode: {
+                                            400: function(resp) {
+                                                console.log(resp.responseJSON);
+
+                                                $('#info-modal').showModal({
+                                                    title: 'Thông báo',
+                                                    message: resp.responseJSON.Message
+                                                });
+                                            }
+                                        }
+                                    }).always(function() {
+                                        $("#form-content").hideDimmer();
+                                    });
+                                } else {
+                                    $("#choose-user").modal({
+                                        autofocus: false,
+                                        closable: false,
+                                    }).modal('show');
+                                }
+
+                            }
+                        });
+
+                }
+            });
+
+            // Choose user submit
+            $("#accept-submit").click(function() {
+
+                // Hide modal
+                $("#choose-user").modal('hide');
+
+                // Show dimmer
+                $("#form-content").showDimmer();
+
+                // Get EmpCode Chosen
+                var userChosen = $("#userChoosen").val();
+                if (!userChosen) {
+                    $("#info-modal").showModal({
+                        title: "Lỗi",
+                        message: "Vui lòng chọn tên người sẽ thực hiện bước tiếp theo"
+                    });
+                    $("#form-content").hideDimmer();
+                    return 0;
+                }
+
+                // Build body content
+                var postData = { EmpCodeChosen: userChosen };
+                var jsonData = JSON.stringify(postData);
+
+                $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("AcceptFormSubmit", new {formId = Model.FormId, userId = Model.AuthorId})",
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    data: jsonData,
+                    success: function(msg) {
+
+                        $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: msg.Data
+                            },
+                            userInput => {
+                                location.reload();
+                            });
+
+                    },
+                    statusCode: {
+                        400: function(resp) {
+                            console.log(resp.responseJSON);
+
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: resp.responseJSON.Message
+                            });
+                        }
+                    }
+                }).always(function() {
+                    $("#form-content").hideDimmer();
+                });
+
+                return 0;
+            });
+
+            $('.form-table').scroll(function() {
+                var offset = $(this).scrollLeft();
+                $('.horizontal-bar').scrollLeft(offset);
+            });
+
+
+            $('.horizontal-bar').scroll(function() {
+                var offset = $(this).scrollLeft();
+                $('.form-table').scrollLeft(offset);
+            });
+
+            updateScrollBar();
+
+            // Print
+            $('button#print').click(function() {
+                $('table.e-content').printThis();
+            });
+        });
+
+        // Init Input Format
+        var multipleEle = new AutoNumeric.multiple('[data-format=currency]',
+            {
+                decimalPlaces: 0
+            });
+
+        new AutoNumeric.multiple('[data-format=percent]',
+            {
+                decimalPlaces: 2,
+                rawValueDivisor: 100,
+                currencySymbol: " %",
+                currencySymbolPlacement: 's',
+
+            });
+
+        function updateScrollBar() {
+            var contentWidth = $('.e-content').width();
+            var targetWidth = $('#form-content').width();
+
+            var zoomLevel = $('.e-content').css('zoom');
+
+            // Set width
+            $('.horizontal-bar .scrollbar').width(contentWidth).css("zoom", zoomLevel);
+            $('.horizontal-bar').width(targetWidth);
+        }
+
+        $(window).scroll(function() {
+            var calculatorOffset = ($(this).scrollTop() + ($(this).innerHeight() * 1)) -
+                ($('#form-content').height() + $('#form-content').position().top);
+
+            if (Math.round(calculatorOffset) < -57) {
+                // Show scrollbar
+                $('div.horizontal-bar').css("opacity", 1);
+            } else {
+                // Hide scrollbar
+                $('div.horizontal-bar').css("opacity", 0);
+            }
+        });
+
+        </script>
+    }}
+else
+{
+    <p>Có lỗi xảy ra, vui lòng thử lại lần nữa hoặc liên hệ để được hỗ trợ.</p>
+}
+
+
+<!-- Model -->
+<div id="info-modal" class="ui tiny test modal">
+    <div class="header">
+        Information
+    </div>
+    <div class="content">
+        <p>Content</p>
+    </div>
+    <div class="actions">
+        <div class="ui approve button main right labeled icon">
+            Đồng ý
+            <i class="checkmark icon"></i>
+        </div>
+    </div>
+</div>
+
+<div id="confirm-modal" class="ui tiny test modal">
+    <div class="header">
+        Information
+    </div>
+    <div class="content">
+        <p>Content</p>
+    </div>
+    <div class="actions">
+        <div class="ui negative button">
+            Không
+        </div>
+        <div id="next-step" class="ui ok button main right labeled icon">
+            Đồng ý
+            <i class="checkmark icon"></i>
+        </div>
+    </div>
+</div>
+
+<div class="ui tiny test modal" id="leave-message">
+    <div class="header">
+        Thông báo
+    </div>
+    <div class="content">
+        <div class="ui form">
+            <h4 class="ui header">Vui lòng nhập nội dung tin nhắn muốn gửi đến người thực hiện bước trước</h4>
+            <div class="field">
+                <label>Tin nhắn</label>
+                <textarea name="message-feedback" id="message-feedback"></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui negative button">
+            Hủy bỏ
+        </div>
+        <div id="decline-submit" class="ui button main right labeled icon">
+            Đồng ý
+            <i class="checkmark icon"></i>
+        </div>
+    </div>
+</div>
+
+<div class="ui tiny test modal" id="choose-user">
+    <div class="header">
+        Thông báo
+    </div>
+    <div class="content">
+        <div class="ui form">
+            <h4 class="ui header">Vui lòng chọn người sẽ thực hiện bước tiếp theo</h4>
+            <div class="field">
+                <div class="ui selection dropdown" id="accept-list">
+                    <!-- This will receive comma separated value like OH,TX,WY !-->
+                    <input id="userChoosen" name="userChoosen" type="hidden">
+                    <i class="dropdown icon"></i>
+                    <div class="default text">nhấn vào đây để chọn...</div>
+                    <div class="menu"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui negative button">
+            Hủy bỏ
+        </div>
+        <div id="accept-submit" class="ui button main right labeled icon">
+            Đồng ý
+            <i class="checkmark icon"></i>
+        </div>
+    </div>
+</div>
