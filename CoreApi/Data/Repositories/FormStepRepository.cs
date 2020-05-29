@@ -102,101 +102,101 @@ namespace CoreApi.Data.Repositories
             if (empDetails != null)
             {
                 // Get all from by group, level
-                //var formsByGroup = await Db.FormSteps
-                //    .Where(x => x.GroupIds.Contains("|" + empDetails.PositionCode + "|"))
-                //    .Include(y => y.Form)
-                //    .ToListAsync();
-                //if (formsByGroup?.Count > 0)
-                //{
-                //    foreach (var formStep in formsByGroup)
-                //    {
-                //        var groupIds = formStep.GroupIds.TrySplit(";");
-                //        if (groupIds.Length > 0)
-                //        {
-                //            foreach (var groupId in groupIds)
-                //            {
-                //                var groupEles = groupId.Split('|');
-
-                //                var eEmpCode = groupEles[0];
-                //                var eGroupId = groupEles[1];
-                //                var eLevel1Id = groupEles[2];
-                //                var eLevel2Id = groupEles[3];
-
-                //                if (!string.IsNullOrEmpty(eGroupId))
-                //                {
-                //                    if (string.IsNullOrEmpty(eLevel1Id))
-                //                    {
-                //                        listItems.Add(formStep);
-                //                        goto nextForm;
-                //                    }
-                //                    else
-                //                    {
-                //                        if (empDetails.Level1Id.Equals(eLevel1Id) &&
-                //                            empDetails.Level2Id.Equals(eLevel2Id))
-                //                        {
-                //                            listItems.Add(formStep);
-                //                            goto nextForm;
-                //                        }
-                //                    }
-                //                }
-                //            }
-                //        }
-
-                //        nextForm:;
-                //    }
-                //}
-
-                // Get all form by empCode
-                //var formByEmpCode = await Db.FormSteps
-                //    .Where(x => x.GroupIds.Contains(empDetails.EmpCode + "|"))
-                //    .Include(y => y.Form)
-                //    .ToListAsync();                
-                //if (formByEmpCode?.Count > 0)
-                //{
-                //    foreach (var _formStep in formByEmpCode)
-                //    {
-                //        var groupIds = _formStep.GroupIds.TrySplit(";");
-                //        if (groupIds.Length > 0)
-                //        {
-                //            foreach (var groupId in groupIds)
-                //            {
-                //                var groupEles = groupId.Split('|');
-                //                try
-                //                {
-                //                    var eEmpCode = groupEles[0];
-                //                    var eGroupId = groupEles[1];
-                //                    var eLevel1Id = groupEles[2];
-                //                    var eLevel2Id = groupEles[3];
-
-                //                    if (!string.IsNullOrEmpty(eEmpCode))
-                //                    {
-                //                        listItems.Add(_formStep);
-                //                        goto nextForm;
-                //                    }
-                //                }
-                //                catch { }
-                //            }
-                //        }
-
-                //        nextForm:;
-                //    }
-                //}
-
-                var formByEmpCode = await Db.FormSteps
-                    .Where(x => x.GroupIds.Contains(empDetails.EmpCode + ",false") && x.Confirm == -1)
+                var formsByGroup = await Db.FormSteps
+                    .Where(x => x.GroupIds.Contains("|" + empDetails.PositionCode + "|"))
                     .Include(y => y.Form)
                     .ToListAsync();
-                if (formByEmpCode?.Count > 0)
-                {                    
-                    foreach (var _formStep in formByEmpCode)
+                if (formsByGroup?.Count > 0)
+                {
+                    foreach (var formStep in formsByGroup)
                     {
-                        if(await Db.UserForms.Where(x => x.CurrentStepId.Equals(_formStep.Id) && String.IsNullOrEmpty(x.ExpireIn.ToString()))
-                                             .FirstOrDefaultAsync() != null)
+                        var groupIds = formStep.GroupIds.TrySplit(";");
+                        if (groupIds.Length > 0)
                         {
-                            listItems.Add(_formStep);
-                        }                                       
+                            foreach (var groupId in groupIds)
+                            {
+                                var groupEles = groupId.Split('|');
+
+                                var eEmpCode = groupEles[0];
+                                var eGroupId = groupEles[1];
+                                var eLevel1Id = groupEles[2];
+                                var eLevel2Id = groupEles[3];
+
+                                if (!string.IsNullOrEmpty(eGroupId))
+                                {
+                                    if (string.IsNullOrEmpty(eLevel1Id))
+                                    {
+                                        listItems.Add(formStep);
+                                        goto nextForm;
+                                    }
+                                    else
+                                    {
+                                        if (empDetails.Level1Id.Equals(eLevel1Id) &&
+                                            empDetails.Level2Id.Equals(eLevel2Id))
+                                        {
+                                            listItems.Add(formStep);
+                                            goto nextForm;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    nextForm:;
                     }
                 }
+
+               // Get all form by empCode
+               var formByEmpCode = await Db.FormSteps
+                   .Where(x => x.GroupIds.Contains(empDetails.EmpCode + "|"))
+                   .Include(y => y.Form)
+                   .ToListAsync();
+                if (formByEmpCode?.Count > 0)
+                {
+                    foreach (var _formStep in formByEmpCode)
+                    {
+                        var groupIds = _formStep.GroupIds.TrySplit(";");
+                        if (groupIds.Length > 0)
+                        {
+                            foreach (var groupId in groupIds)
+                            {
+                                var groupEles = groupId.Split('|');
+                                try
+                                {
+                                    var eEmpCode = groupEles[0];
+                                    var eGroupId = groupEles[1];
+                                    var eLevel1Id = groupEles[2];
+                                    var eLevel2Id = groupEles[3];
+
+                                    if (!string.IsNullOrEmpty(eEmpCode))
+                                    {
+                                        listItems.Add(_formStep);
+                                        goto nextForm;
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+
+                    nextForm:;
+                    }
+                }
+
+                //var formByEmpCode = await Db.FormSteps
+                //    .Where(x => x.GroupIds.Contains(empDetails.EmpCode + ",false") && x.Confirm == -1)
+                //    .Include(y => y.Form)
+                //    .ToListAsync();
+                //if (formByEmpCode?.Count > 0)
+                //{                    
+                //    foreach (var _formStep in formByEmpCode)
+                //    {
+                //        if(await Db.UserForms.Where(x => x.CurrentStepId.Equals(_formStep.Id) && String.IsNullOrEmpty(x.ExpireIn.ToString()))
+                //                             .FirstOrDefaultAsync() != null)
+                //        {
+                //            listItems.Add(_formStep);
+                //        }                                       
+                //    }
+                //}
             }
 
             return listItems;
