@@ -1,0 +1,110 @@
+﻿.ui.steps {
+    margin-top: 10px !important;
+
+    .step.active {
+        background-color: #005663 !important;
+
+        .step-index {
+            color: #fff !important;
+        }
+
+        .content {
+            .title {
+                color: #fff !important;
+            }
+
+            .description {
+                color: #fff !important;
+            }
+        }
+
+        .info {
+            color: #fff !important;
+        }
+    }
+}
+
+.message-tip {
+    float: left;
+    margin-top: 9px;
+}
+
+#form-content {
+    .e-content {
+        tr {
+            td {
+
+                & div {
+                    height: 100%;
+
+                    input {
+                        padding: 5px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+.horizontal-bar {
+    overflow-y: auto;
+    position: fixed;
+    bottom: 0;
+
+    .scrollbar {
+        height: 1px;
+    }
+}
+
+.stackable.steps {
+    .step {
+        padding: 15px;
+
+        .step-container {
+            .info {
+                margin-top: 10px;
+                display: inline-block;
+                width: 85%;
+                float: right;
+                font-size: 11px;
+                border-top: #e0e0e0 1px solid;
+                padding-top: 8px;
+            }
+        }
+    }
+}
+
+.left-side {
+    font-size: 50px;
+    position: sticky;
+    display: inline-block;
+    top: 50%;
+    z-index: 9999;
+    margin-left: -70px;
+    height: 0;
+
+    .control {
+
+        i {
+            cursor: pointer;
+        }
+    }
+}
+
+.right-side {
+    font-size: 50px;
+    position: sticky;
+    display: inline-block;
+    top: 50%;
+    z-index: 9999;
+    height: 0;
+    float: right;
+    margin-right: -75px;
+
+    .control {
+
+        i {
+            cursor: pointer;
+        }
+    }
+}

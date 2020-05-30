@@ -1,0 +1,38 @@
+﻿#table {
+
+    thead {
+        tr {
+            td {
+                font-weight: bold;
+                border-bottom: 1px solid rgba(34,36,38,.1);
+                border-right: 1px solid rgba(34,36,38,0.1);
+
+                &:last-child {
+                    border-right: 0px;
+                }
+            }
+        }
+    }
+
+    tbody {
+        tr {
+            td {
+                &:first-child {
+                    text-align: center;
+                }
+
+                &:last-child {
+                    text-align: right;
+                }
+
+                div.title {
+                    font-weight: bold;
+                }
+
+                div.sub-title {
+                    margin-top: 6px;
+                }
+            }
+        }
+    }
+}
