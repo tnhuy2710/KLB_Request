@@ -3,8 +3,21 @@
     ViewData["Title"] = "Home Page";
 }
 
+@section css
+{
+    <link rel="stylesheet" href="~/css/views/home/index.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+}
+
 @section Scripts
 {
+    <script src="~/dist/autoNumeric.min.js"></script>
+    <script src="~/js/site.js"></script>
+    <script src="~/js/modal.js"></script>
+    <script src="~/dist/printThis.js"></script>
     <script type="text/javascript">
         $('#menu-tab .item').tab();
 
@@ -93,7 +106,7 @@
                     url: "@Url.Action("GetCurrentUserByIDAsync", "Home")",
                     data: { id: $(this).val() },
                     traditional: true,
-                    dataType: 'json',
+                    //dataType: 'json',
                     success: function (data) {
                         $("#joinPermission").append("<p>" + data["FullName"] + " - " + data["Username"] + " - " + data["Title"] + "</p>");
                     }
@@ -130,10 +143,37 @@
 
             $("#sEND_GEMAIL_REQUEST").click(function () {
                 var flag = 1;
-                if ($("#form_Name").length === 0 || $("#dESCRIPTION").length === 0 || $("#date_Start").length === 0 || $("#date_End").length === 0) {
+                if ($("#form_Name").val().length === 10 || $("#dESCRIPTION").val().length === 0 ||
+                    $("#date_Start").val().length === 0 || $("#date_End").val().length === 0 ||
+                    $("#sHEET").val().length === 0 || $("#fileType").val().length === 0) {
+
                     $("#aTTENTION_CONTENT").text("Xin nhập đầy đủ thông tin");
                     $("#btn_ATTENTION").click();
                     flag = 0;
+                }
+                var file = $("#fileType").get(0).files[0];
+
+                if (flag === 1) {
+                    var formData = new FormData();
+                    formData.append(file.name, file);
+                    $.ajax({
+                        url: "@Url.Action("SaveUploadFile")",
+                        type: "POST",
+                        data: formData,
+                        contentType: false,
+                        processData: false,
+                        success: function (data) {
+                            if (data === false) {
+                                flag = 0;
+                                $('#info-modal').showModal({
+                                    title: 'Thông báo',
+                                    message: "Lỗi import file",
+                                }, userInput => {
+                                    location.reload();
+                                });
+                            }
+                        }
+                    });
                 }
                 if (flag === 1) {
                     var viewPermission = "";
@@ -141,59 +181,55 @@
                         viewPermission = viewPermission + $(this).attr("value") + ";";
                     });
 
-                    var infoPermission = [];
-                    infoPermission.push($("#fileType").val());
-                    infoPermission.push($("#form_Name").val());
-                    infoPermission.push($("#dESCRIPTION").val());
-                    infoPermission.push($("#date_Start").val());
-                    infoPermission.push($("#date_End").val());
-                    infoPermission.push($("#sHEET").val());
-                    infoPermission.push(viewPermission);
-
-
                     var pERMISSION = [];
                     $("#PermissionInfo > tbody > tr").each(function () {
-                        //0
-                        pERMISSION.push($(this).find("td").eq(0).find("option:selected").val());
-                        //1
-                        pERMISSION.push($(this).find("td").eq(1).find("input").val());
-                        //3
-                        pERMISSION.push($(this).find("td").eq(3).find("input").val());
-                        //4
-                        pERMISSION.push($(this).find("td").eq(4).find("input").val());
-                        //5
-                        pERMISSION.push($(this).find("td").eq(5).find("option:selected").val());
+                        var iTEM = {};
+                        iTEM['nAME'] = $(this).find("td").eq(0).find("option:selected").val();
+                        iTEM['empCode'] = $(this).find("td").eq(1).find("input").val();
+                        iTEM['availableFrom'] = $(this).find("td").eq(3).find("input").val();
+                        iTEM['expireIn'] = $(this).find("td").eq(4).find("input").val();
+                        iTEM['isAllowSendEmail'] = $(this).find("td").eq(5).find("option:selected").val();
+                        pERMISSION.push(iTEM);
                     });
+
+                    var postData = {
+                        iD: file.name,
+                        nAME: $("#form_Name").val(),
+                        dESCRIPTION: $("#dESCRIPTION").val(),
+                        publishDate: $("#date_Start").val(),
+                        closeDate: $("#date_End").val(),
+                        sheetIndex: $("#sHEET").val(),
+                        viewPermissions: viewPermission,
+                        pERMISSIONs: pERMISSION
+                    };
+
+                    var jsonData = JSON.stringify(postData);
 
                     $.ajax({
                         type: "POST",
-                        url: "@Url.Action("SendRequestAsync", "Home")",
-                        data: { infoPermission: infoPermission, viewPermission: viewPermission, pERMISSION: pERMISSION},
-                        traditional: true,
-                        dataType: 'json',
+                        url: "@Url.Action("SendRequestAsync")",
+                        data: jsonData,
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
                         success: function (data) {
-                            console.log("abc");
-                            $("#aTTENTION_CONTENT").text(data);
-                            $("#btn_ATTENTION").click();
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: 'Đã lưu thành công dữ liệu của bạn.',
+                            });
+
+                            location.reload();
+                        },
+                        statusCode: {
+                            400: function (resp) {
+                                console.error(resp.responseJSON);
+                                $('#info-modal').showModal({
+                                    title: 'Thông báo',
+                                    message: resp.responseJSON.Message
+                                });
+                            }
                         }
                     });
                 }
-
-
-                @*if (flag == 1) {
-                    $.ajax({
-                        type: "POST",
-                        url: "@Url.Action("SendRequestAsync", "Home")",
-                        data: { iTEM: iTEM, FormID: "GEMAIL", cONTENT: import_Content, pERMISSION: pERMISSION, sTEPS: sTEPS },
-                        traditional: true,
-                        dataType: 'json',
-                        success: function (data) {
-                            $("#aTTENTION_CONTENT").text(data);
-                            $("#btn_ATTENTION").click();
-                        }
-                    });
-                }*@
-
             });
 
             $("#sEND_GEMAIL_IDEALLY").click(function () {
@@ -231,8 +267,8 @@
                         + "<td><input type='date' class='form-control' style='max-width: 85%; margin: auto' /></td>"
                         + "<td>"
                         +   "<select class='custom-select mr-sm-2'>"
-                        +       "<option selected value='0'>Off</option>"
-                        +       "<option value='1'>On</option>"
+                        +       "<option selected value='false'>Off</option>"
+                        +       "<option value='true'>On</option>"
                         +   "</select ></td>"
                         + "<td><i class='fas fa-trash-alt' onclick='RemovePer(Per" + cOUNT + ")'></i></td>"
                     + "</tr>");
@@ -397,10 +433,11 @@
                         if (data === null) {
                             $("#aTTENTION_CONTENT").text("Không tìm thấy mã nhân sự");
                             $("#btn_ATTENTION").click();
+                            $("#" + id).val("");
                             return;
                         }
                         else {
-                            $("#" + id).val(iD + " - " + data["Username"]);
+                            $("#" + id).val(iD);
                         }
                     }
                 });
@@ -483,7 +520,7 @@
                             <div class="h5-custom" style="display: flex">
                                 <label style="margin-top: auto">Đơn vị:</label>
                                 @*<input type="text" id="Organization" value="" readonly>*@
-                                <input type="text" class="form-control" id="Organization" readonly style="max-width: max-content; margin-left: 10px">
+                                <input type="text" class="form-control" id="Organization" readonly style="margin-left: 10px">
                             </div>
                         </div>
                         <div class="col-lg-6" style="text-align: center;">
@@ -625,150 +662,150 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form class="ui form" method="post" enctype="multipart/form-data" asp-controller="" asp-action="SaveUploadFile">
-                    <div class="modal-body">
-                        <div>
-                            <div style="display: flex; margin: 10px">
-                                <div class="col-md-2">
-                                    <label style="margin: 4px">Tên mẫu: </label>
-                                </div>
-                                <div class="col-md-8" style="display: flex">
-                                    <input type="text" class="form-control" id="form_Name" placeholder="Nhập tên mẫu" aria-label="Username" aria-describedby="basic-addon1">
-                                </div>
+                @*<form class="ui form" method="post" enctype="multipart/form-data" asp-controller="" asp-action="SaveUploadFile">*@
+                <div class="modal-body">
+                    <div>
+                        <div style="display: flex; margin: 10px">
+                            <div class="col-md-2">
+                                <label style="margin: 4px">Tên mẫu: </label>
                             </div>
-                            <div style="display: flex; margin: 10px">
-                                <div class="col-md-2">
-                                    <label style="margin: 4px">Mô tả: </label>
-                                </div>
-                                <div class="col-md-8" style="display: flex">
-                                    <input type="text" class="form-control" id="dESCRIPTION" placeholder="Nhập mô tả" aria-label="Username" aria-describedby="basic-addon1">
-                                </div>
+                            <div class="col-md-8" style="display: flex">
+                                <input type="text" class="form-control" id="form_Name" placeholder="Nhập tên mẫu">
                             </div>
-                            <div style="display: flex; margin: 10px">
-                                <div class="col-md-2">
-                                    <label style="margin: 4px">Thời gian: </label>
-                                </div>
-                                <div class="col-md-11" style="display: flex">
-                                    <div class="col-md-4" style="display: flex; align-items: baseline; margin-left: -30px">
-                                        <div class="col-md-4">
-                                            <label>Bắt đầu:</label>
-                                        </div>
-                                        <div class="col-md-8">
-                                            <input id="date_Start" type="date" class="form-control" />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4" style="display: flex; align-items: baseline">
-                                        <div class="col-md-4">
-                                            <label>Kết thúc:</label>
-                                        </div>
-                                        <div class="col-md-8">
-                                            <input id="date_End" type="date" class="form-control" />
-                                        </div>
-                                    </div>
-                                </div>
+                        </div>
+                        <div style="display: flex; margin: 10px">
+                            <div class="col-md-2">
+                                <label style="margin: 4px">Mô tả: </label>
                             </div>
-                            <div style="display: flex; margin: 10px">
-                                <div class="col-md-2">
-                                    <label style="margin: 4px">Thêm file: </label>
-                                </div>
-                                <div class="col-md-7">
-                                    <div class="form-group">
-                                        <input type="file" class="form-control-file" id="fileType" name="fileType">
+                            <div class="col-md-8" style="display: flex">
+                                <input type="text" class="form-control" id="dESCRIPTION" placeholder="Nhập mô tả">
+                            </div>
+                        </div>
+                        <div style="display: flex; margin: 10px">
+                            <div class="col-md-2">
+                                <label style="margin: 4px">Thời gian: </label>
+                            </div>
+                            <div class="col-md-11" style="display: flex">
+                                <div class="col-md-4" style="display: flex; align-items: baseline; margin-left: -30px">
+                                    <div class="col-md-4">
+                                        <label>Bắt đầu:</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <input id="date_Start" type="date" class="form-control" />
                                     </div>
                                 </div>
-                                <div class="col-md-3" style="display: flex">
-                                    <div>
-                                        <label style="margin: 4px">Sheet</label>
+                                <div class="col-md-4" style="display: flex; align-items: baseline">
+                                    <div class="col-md-4">
+                                        <label>Kết thúc:</label>
                                     </div>
-                                    <div style="max-width: 20%">                                        
-                                        <input type="text" class="form-control" id="sHEET" aria-label="Username" aria-describedby="basic-addon1">
+                                    <div class="col-md-8">
+                                        <input id="date_End" type="date" class="form-control" />
                                     </div>
                                 </div>
                             </div>
-                            <div style="display: flex; margin: 10px">
-                                <div class="col-md-2">
-                                    <label style="margin: 4px">Danh sách theo dõi:</label>
+                        </div>
+                        <div style="display: flex; margin: 10px">
+                            <div class="col-md-2">
+                                <label style="margin: 4px">Thêm file: </label>
+                            </div>
+                            <div class="col-md-7">
+                                <div class="form-group">
+                                    <input type="file" class="form-control-file" id="fileType" name="fileType">
                                 </div>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control" id="input_ID" placeholder="Nhập mã nhân sự" aria-label="Username" aria-describedby="basic-addon1">
+                            </div>
+                            <div class="col-md-3" style="display: flex">
+                                <div>
+                                    <label style="margin: 4px">Sheet</label>
                                 </div>
-                                <div class="col-md-1">
-                                    <button type="button" class="btn-add" style="margin-top: 4px" id="add_Employee">
+                                <div style="max-width: 20%">
+                                    <input type="text" class="form-control" id="sHEET" aria-label="Username" aria-describedby="basic-addon1">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; margin: 10px">
+                            <div class="col-md-2">
+                                <label style="margin: 4px">Danh sách theo dõi:</label>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" id="input_ID" placeholder="Nhập mã nhân sự" aria-label="Username" aria-describedby="basic-addon1">
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn-add" style="margin-top: 4px" id="add_Employee">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display: flex; margin: 10px">
+                            <div class="col-md-2">
+
+                            </div>
+                            <div class="col-md-8" id="viewPermission">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; margin: 10px">
+                            <div class="col-md-2">
+                                <label style="margin: 4px">Quy trình tham gia:</label>
+                            </div>
+                            <div class="col-md-10" id="" style="margin: 4px">
+                                <div style="text-align: end; width: 50%">
+                                    <button type="button" class="btn-add" style="margin-top: 4px" id="AddPer">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
-                            </div>
-                            <div style="display: flex; margin: 10px">
-                                <div class="col-md-2">
-
-                                </div>
-                                <div class="col-md-8" id="viewPermission">
-                                </div>
-                            </div>
-
-                            <div style="display: flex; margin: 10px">
-                                <div class="col-md-2">
-                                    <label style="margin: 4px">Quy trình tham gia:</label>
-                                </div>
-                                <div class="col-md-10" id="" style="margin: 4px">
-                                    <div style="text-align: end; width: 50%">
-                                        <button type="button" class="btn-add" style="margin-top: 4px" id="AddPer">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
-                                    <div id="table-scroll" class="table-scroll" style="margin: 10px auto;">
-                                        <div class="table-wrap">
-                                            <table class="table" id="PermissionInfo">
-                                                <thead class="thead-dark">
-                                                    <tr>
-                                                        <th scope="col">Mô tả</th>
-                                                        <th scope="col">Tham gia</th>
-                                                        <th scope="col">Bước</th>
-                                                        <th scope="col">Bắt đầu</th>
-                                                        <th scope="col">Kết thúc</th>
-                                                        <th scope="col">Send Mail</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr>
-                                                        <td>
-                                                            <select class="custom-select mr-sm-2">
-                                                                <option selected value="Edit">Đánh giá</option>
-                                                                <option value="Confirm">Xét duyệt</option>
-                                                                <option value="View">Kết thúc</option>
-                                                            </select>
-                                                        </td>
-                                                        <td>
-                                                            <input type="text" class="form-control" id="per_1" onchange="GetCurrentUserByID(this.id)" style="max-width: 80%; margin: auto" vale="" />
-                                                        </td>
-                                                        <td>1</td>
-                                                        <td><input type="date" class="form-control" style="max-width: 85%; margin: auto" /></td>
-                                                        <td><input type="date" class="form-control" style="max-width: 85%; margin: auto" /></td>
-                                                        <td>
-                                                            <select class="custom-select mr-sm-2">
-                                                                <option selected value="0">Off</option>
-                                                                <option value="1">On</option>
-                                                            </select>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                <div id="table-scroll" class="table-scroll" style="margin: 10px auto;">
+                                    <div class="table-wrap">
+                                        <table class="table" id="PermissionInfo">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th scope="col">Mô tả</th>
+                                                    <th scope="col">Tham gia</th>
+                                                    <th scope="col">Bước</th>
+                                                    <th scope="col">Bắt đầu</th>
+                                                    <th scope="col">Kết thúc</th>
+                                                    <th scope="col">Send Mail</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <select class="custom-select mr-sm-2">
+                                                            <option selected value="Edit">Đánh giá</option>
+                                                            <option value="Confirm">Xét duyệt</option>
+                                                            <option value="View">Kết thúc</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control" id="per_1" onchange="GetCurrentUserByID(this.id)" style="max-width: 80%; margin: auto" vale="" />
+                                                    </td>
+                                                    <td>1</td>
+                                                    <td><input type="date" class="form-control" style="max-width: 85%; margin: auto" /></td>
+                                                    <td><input type="date" class="form-control" style="max-width: 85%; margin: auto" /></td>
+                                                    <td>
+                                                        <select class="custom-select mr-sm-2">
+                                                            <option selected value="false">Off</option>
+                                                            <option value="true">On</option>
+                                                        </select>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
-                        </div>                        
+                        </div>
                     </div>
+                </div>
 
-                    <div class="modal-footer">
-                        <div class="col-md-5" style="margin-right: 8%">
-                            <button type="submit" class="btn btn-primary" id="sEND_GEMAIL_REQUEST" value="save" style="width: 80%">Gửi đề xuất</button>
-                        </div>
-                        <div class="col-md-5">
-                            <button type="button" class="btn btn-secondary" style="width: 80%" data-dismiss="modal">Hủy bỏ</button>
-                        </div>
+                <div class="modal-footer">
+                    <div class="col-md-5" style="margin-right: 8%">
+                        <button type="submit" class="btn btn-primary" id="sEND_GEMAIL_REQUEST" value="save" style="width: 80%">Gửi đề xuất</button>
                     </div>
-                </form>
+                    <div class="col-md-5">
+                        <button type="button" class="btn btn-secondary" style="width: 80%" data-dismiss="modal">Hủy bỏ</button>
+                    </div>
+                </div>
+                @*</form>*@
             </div>
         </div>
     </div>
@@ -788,6 +825,21 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="info-modal" class="ui tiny test modal">
+        <div class="header">
+            Delete Your Account
+        </div>
+        <div class="content">
+            <p>Are you sure you want to delete your account</p>
+        </div>
+        <div class="actions">
+            <div class="ui approve button main right labeled icon">
+                Đồng ý
+                <i class="checkmark icon"></i>
             </div>
         </div>
     </div>
@@ -821,7 +873,7 @@
                 <div class="item">
                     <div class="right floated content">
                         @*<a href="#" id="@form.Id" class="ui button blue" onclick="editForm(this.id)" data-toggle="modal" data-target=@form.FormName>Thực hiện</a>*@
-                        <a href="@Url.Action("Form", "Form", new { formId = form.Id })" class="ui button">Xem</a>
+                        <a href="@Url.Action("About", "Home", new { formId = form.Id })" class="ui button">Xem</a>
                     </div>
                     <div class="content">
                         <div class="form-name">@form.Name</div>
@@ -872,7 +924,7 @@
                 {
                     <div class="item">
                         <div class="right floated content">
-                            <a href="@Url.Action("FormConfirm", "Form", new { formId = form.Id })" class="ui button main">Xét duyệt</a>
+                            <a href="@Url.Action("Contact", "Home", new { formId = form.Id, userId = "52839da4-af28-42ad-a633-a8aac23a0b89" })" class="ui button main">Xét duyệt</a>
                         </div>
                         <div class="content">
                             <div class="form-name">@form.Name</div>
@@ -897,14 +949,7 @@
             {
                 <div class="item">
                     <div class="right floated content">
-                        @if (!string.IsNullOrEmpty(form.ViewType) && form.ViewType.Equals("list"))
-                        {
-                            <a href="@Url.Action("FormViews", "Form", new { formId = form.Id})" class="ui button">Xem</a>
-                        }
-                        else
-                        {
-                            <a href="@Url.Action("Form", "Form", new { formId = form.Id})" class="ui button">Xem</a>
-                        }
+                        <a href="@Url.Action("Excel", "Home", new { formId = form.Id})" class="ui button">Xem</a>
                     </div>
                     <div class="content">
                         <div class="form-name">@form.Name</div>
@@ -951,15 +996,6 @@
         </div>
     </div>*@
 
-
-@section css
-{
-    <link rel="stylesheet" href="~/css/views/home/index.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-}
 
 <style>
     .input[type=text] {

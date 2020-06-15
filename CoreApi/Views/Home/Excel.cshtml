@@ -1,31 +1,191 @@
-﻿@{
-    ViewData["Title"] = "Excel Export";
+﻿@*@{
+        ViewData["Title"] = "About";
+    }
+    <h2>@ViewData["Title"]</h2>
+    <h3>@ViewData["Message"]</h3>
+
+    <p>Use this area to provide additional information.</p>*@
+@using OfficeOpenXml.FormulaParsing.Excel.Functions.Math
+@model CoreApi.ViewModels.FormViewModels.FormViewModel
+@{
+    ViewData["Title"] = Model.Name;
 }
-<h2>@ViewData["Title"]</h2>
-<h3>@ViewData["Message"]</h3>
 
 @{
-    if (ViewData["Content"] != null)
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    if (!string.IsNullOrEmpty(Model.FormHtmlContent))
     {
-        <table class="e-content">
-            <tbody>
-                @Html.Raw(ViewData["Content"])
-            </tbody>
-        </table>
+        if (Model.StepsDetails.Count > 1)
+        {
+            <div class="ui tablet stackable steps">
+                @for (int i = 0; i < Model.StepsDetails.Count; i++)
+                {
+                    var additionClass = "";
 
+                    if (!Model.StepsDetails[i].IsActive)
+                    {
+                        additionClass = "disabled";
+                    }
+                    if (Model.StepsDetails[i].IsCurrent)
+                    {
+                        additionClass = "active";
+                    }
 
-        <button id="submit-form">Gửi biểu mẫu</button>
+                    <div class="step @additionClass" style="width: @(100 / Model.StepsDetails.Count)%">
+                        <div class="step-container">
+                            <div class="step-index">@(i + 1)</div>
+                            <div class="content">
+                                <div class="title">@Model.StepsDetails[i].Name</div>
+                                <div class="description">@Model.StepsDetails[i].Description</div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.StepsDetails[i].InfoTitle))
+                            {
+                                <div class="info">
+                                    <div class="name">@Model.StepsDetails[i].InfoTitle</div>
+                                    <div class="date">@Model.StepsDetails[i].InfoDescription</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        <div class="ui divider"></div>
+
+        <div class="ui grid">
+            <div class="column row">
+                <div class="right floated two column">
+                    <div class="message-tip">
+                        <p class="main-color">Tip: Các công thức tính toán, số liệu chỉ <b>Cập Nhật</b> khi bạn nhấn nút <b>Lưu Nháp</b> phía dưới.</p>
+                    </div>
+                    <div class="form-control-buttons">
+                        <button id="print" class="ui blue labeled icon button">
+                            <i class="print icon"></i>
+                            In biểu mẫu
+                        </button>
+
+                        <button id="zoom-in" class="ui labeled icon button">
+                            <i class="search plus icon"></i>
+                            Phóng to
+                        </button>
+                        <button id="zoom-out" class="ui labeled icon button">
+                            <i class="search minus icon"></i>
+                            Thu nhỏ
+                        </button>
+                        <button id="zoom-reset" class="ui labeled icon button">
+                            <i class="undo icon"></i>
+                            Hoàn tác
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="form-content">
+            <div class="ui inverted dimmer">
+                <div class="ui text loader">Đang gửi thông tin đến máy chủ</div>
+            </div>
+
+            <div class="form-table">
+                <table class="e-content" style="zoom: 0.8">
+                    <tbody>
+                        @Html.Raw(Model.FormHtmlContent)
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="horizontal-bar">
+                <div class="scrollbar"></div>
+            </div>
+
+            <div class="buttons_layout">
+                <a href="@Url.Action("Index", "Home")" class="ui button red submit_form">Quay lại</a>
+                @if (Model.IsAllowEditable)
+                {
+                    <a class="ui button main submit_form" id="submit-form">Hoàn tất</a>
+                }
+            </div>
+        </div>
+
+        <div id="info-modal" class="ui tiny test modal">
+            <div class="header">
+                Delete Your Account
+            </div>
+            <div class="content">
+                <p>Are you sure you want to delete your account</p>
+            </div>
+            <div class="actions">
+                <div class="ui approve button main right labeled icon">
+                    Đồng ý
+                    <i class="checkmark icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin: 10px">
+            <div id="comment">
+                <ul>
+                </ul>
+            </div>
+            <div style="display: flex">
+                <input type="text" class="form-control" id="input-comment" style="max-width: 50%"/>
+                <a class="ui button main submit_form" onclick="SubmitComment('input-comment')" style="color: white">Gửi bình luận</a>
+            </div>
+            <input id="temp-input" hidden/>
+        </div>
     }
 }
 
+@section css
+    {
+    <style type="text/css">
+        .form-control-buttons {
+            float: right;
+        }
+        .reply-cmt {
+            margin-top: -10px;
+            padding: 8px 0 0 54px;
+        }
+    </style>
+    <link id="form-style" rel="stylesheet" href="~/css/views/form/form.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+}
+
 @section Scripts
-{
+    {
     <!-- AutoNumeric Library -->
+    @*<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>*@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
     <script src="~/dist/autoNumeric.min.js"></script>
+    <script src="~/js/site.js"></script>
+    <script src="~/js/modal.js"></script>
+    <script src="~/dist/printThis.js"></script>
     <script type="text/javascript">
+
         $(document).ready(function () {
 
-            $("input[id^=number]").keydown(function (e) {
+            var zoomLevel = 0.8;
+
+            $("#zoom-in").click(function() {
+                $(".e-content").css("zoom", zoomLevel += 0.05);
+                updateScrollBar();
+            });
+
+            $("#zoom-out").click(function () {
+                $(".e-content").css("zoom", zoomLevel -= 0.05);
+                updateScrollBar();
+            });
+
+            $("#zoom-reset").click(function () {
+                zoomLevel = 0.8;
+                $(".e-content").css("zoom", zoomLevel);
+                updateScrollBar();
+            });
+
+            // Handle input number type
+            $("input[data-format=number]").keydown(function (e) {
 
                 // Allow: backspace, delete, tab, escape, enter and .
                 if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 110, 190, 188]) !== -1 ||
@@ -47,16 +207,13 @@
             });
 
             // Handle add Plus Row button
-            $("tr[groupindex]").before('<div class="add-row"><i class="fas fa-plus-square"></i></div>');
+            $("tr[groupindex]").before('<div class="add-row"><i class="plus icon"></i></div>');
 
-            //$("tr[groupindex]").each(function () {
-
-            //    $(this).after('<tr type="base" style="display: none">' + $(this).html() + '</tr>');
-
-            //});
+            // Handle add delete row button
+            $("tr[type='added']").before('<div class="delete-row"><i class="minus icon"></i></div>');
 
             // Detect change
-            $("td[data-address=33-4]").on('change', function() {
+            $("td[data-address=33-4]").on('change', function () {
                 console.log("Detect changes");
             });
 
@@ -88,51 +245,37 @@
 
                         if (inputEle !== 'undefined' && inputEle.length > 0) {
 
-                            // Calculator address
-                            var address = inputEle.data('address');
+                            // Get address
+                            var address = inputEle.attr('data-address');
 
-                            // Split address
-                            var addresses = address.split('-');
-
-                            if (addresses.length === 2) {
-
-                                // Row Index
-                                var rowIndex = addresses[0];
-
-                                // Cell Index/Column Index
-                                var cellIndex = addresses[1];
-
-                                //
-                                var oldAddress = rowIndex + '-' + cellIndex;
-
-                                if (isFirstRow) {
-                                    $('input[name=' + oldAddress + ']').attr('data-base', oldAddress);
-                                }
-
-                                // Update New Address for current row
-                                $('input[name=' + oldAddress + ']')
-                                    .val('');   // Clear value
+                            if (isFirstRow) {
+                                $('input[name=' + address + ']').attr('data-base', address);
                             }
+
+                            // Update New Address for current row
+                            $('input[name=' + address + ']').val('');   // Clear value
                         }
-                        
+
                     });
 
                     $(this).before(nextRow);
 
-                    // Add Button for 
-                    nextRow.before('<div class="delete-row"><i class="fas fa-minus-square"></i></div>');
+                    // Add Button for
+                    nextRow.before('<div class="delete-row"><i class="minus icon"></i></div>');
 
                     // Update index all rows added
                     updateIndex();
 
                     $("td[data-address=33-4]").trigger('change');
                 }
+            });
 
-                // Handle delete button clicked
-                $(".delete-row").on('click', function() {
+            // Handle delete button clicked
+            $(".e-content").on('click', 'div', function () {
 
+                // Check type
+                if ($(this).attr('class') === "delete-row") {
                     var row = $(this).next();
-
                     if (row !== 'undefined' && row.length > 0) {
 
                         // Delete row and button
@@ -142,16 +285,432 @@
                         // Update index all rows added
                         updateIndex();
                     }
-                });
+                }
+            });
+
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetCommentByFormID")",
+                data: {},
+                traditional: true,
+                dataType: 'json',
+                success: function (data) {
+                    $.each(data, function (index, value) {                        
+                        var temp = "";                        
+                        var date = new Date(value["DateComment"]);
+                        date = date.getDate() + "-" + date.getMonth() + "-" + date.getFullYear();
+                        if (value["User"] != "") {
+                            temp = "<div class='dropdown' id='dropdown_" + value["Id"] + "'>"
+                                + "<a class='btn btn-default dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>"
+                                + "<i class='fa fa-sort-desc' aria-hidden='true'></i></a>"
+                                + "<div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+                                + "<a class='dropdown-item' href='#' onclick='EditComment(cmt_" + value["Id"] + ")'>Sửa</a>"
+                                + "<a class='dropdown-item' href='#' onclick='RemoveComment(cmt_" + value["Id"] + ")'>Xóa</a>"
+                                + "</div></div>";
+                            //$(temp).insertAfter($("#cmt_" + value["Id"]).find("p").eq(2));
+                        }
+
+                        if (value["ReplyID"] == null) {
+                            $("#comment > ul").append(
+                            "<li id='cmt_" + value["Id"] + "'>"
+                                + "<div>"
+                                +   "<div aria-label='Bình luận'>"
+                                +       "<div class='' style='display: inline-flex;'>"
+                                +           "<div class='cmt-div' style='display: inline-flex;padding-right: 30px;'>"
+                                +               "<p style='padding-right: 30px;'>"+ value["User"]["FullName"] + "</p>"
+                                +               "<p id='" + value["Id"] + "'>" + value["Content"] + "</p>"
+                                +               "<p>" + value["ReplyID"] + "</p>"
+                                +           "</div>"
+                                +           "<div class='options-div'>"
+                                +               temp
+                                +           "</div>"
+                                +       "</div>"
+                                +       "<div style='display: flex;'>"
+                                +            "<a href='#' onclick=ReplyComment('cmt_" + value["Id"] + "')> Trả lời </a>"
+                                +            "<p style='padding-left: 100px;'>" + date + "</p>"
+                                +       "</div>"
+                                +   "</div>"
+                                + "</div>"
+                                + "<div class='reply-cmt'>"
+                                +   "<ul>"
+                                +   "</ul>"
+                                +"</div>"
+                            + "</li>");
+                        }
+                        else {
+                            $("#cmt_" + value["ReplyID"]).find(".reply-cmt").find("ul").append(
+                            "<li id='cmt_" + value["Id"] + "'>"
+                                + "<div>"
+                                +   "<div aria-label='Bình luận'>"
+                                +       "<div class='' style='display: inline-flex;'>"
+                                +           "<div class='cmt-div' style='display: inline-flex;padding-right: 30px;'>"
+                                +               "<p style='padding-right: 30px;'>"+ value["User"]["FullName"] + "</p>"
+                                +               "<p id='" + value["Id"] + "'>" + value["Content"] + "</p>"
+                                +               "<p hidden>" + value["ReplyID"] + "</p>"
+                                +           "</div>"
+                                +           "<div class='options-div'>"
+                                +               temp
+                                +           "</div>"
+                                +       "</div>"
+                                +       "<div style='display: flex;'>"
+                                +            "<a href='#' onclick=ReplyComment('cmt_" + value["Id"] + "')> Trả lời </a>"
+                                +            "<p style='padding-left: 100px;'>" + date + "</p>"
+                                +       "</div>"
+                                +   "</div>"
+                                + "</div>"
+                            + "</li>");                                                  
+                        }
+                    });                    
+                }
             });
         });
 
+        //function myFunction() {
+        //    document.getElementById("myDropdown").classList.toggle("show");
+        //}
+
+        $("#submit-form").click(function () {
+            var listInputs = [];
+            var jsonData = JSON.stringify(listInputs);
+
+            $("#form-content").showDimmer();
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("SubmitForm")",
+                contentType: "application/json; charset=utf-8",
+                data: jsonData,
+                dataType: "json",
+                success: function (msg) {
+                    $('#info-modal').showModal({
+                        title: 'Thông báo',
+                        message: msg.Data,
+                    }, userInput => {
+                        location.reload();
+                    });
+
+                },
+                statusCode: {
+                    400: function (resp) {
+                        console.log(resp.responseJSON);
+
+                        $('#info-modal').showModal({
+                            title: 'Thông báo',
+                            message: resp.responseJSON.Message
+                        });
+                    }
+                }
+            }).always(function () {
+                $("#form-content").hideDimmer();
+            });
+        });
+
+        $("#submit-comment").click(function () {
+            if ($("#input-comment").val().length > 0) {
+                var cOUNT = $("#comment > div").length;
+                var cONTENT = $("#input-comment").val();
+
+                 $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("SubmitComment")",
+                    data: {
+                        cONTENT: cONTENT
+                    },
+                    success: function (msg) {                         
+                        if (msg == null) {
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: 'Lỗi insert Comment Table',
+                            }, userInput => {
+                                location.reload();
+                            });
+                        }
+                        else {
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("GetCurrentUserAsync", "Home")",
+                                data: {},
+                                traditional: true,
+                                dataType: 'json',
+                                success: function (data) {
+                                    $("#comment").append("<div id='cmt_" + msg["Id"] + "'>"
+                                                        +   "<p>" + data["FullName"] + ":" + "</p>"
+                                                        +   "<p id='" + msg["Id"] + "'>" + msg["Content"] + "</p>"
+                                                        +   "<p>" + msg["DateComment"] + "</p>"
+                                                        + "<a href='#' onclick=ReplyComment('cmt_" + msg["Id"] + "')> Trả lời </a>"
+                                                        +   "<div class='dropdown' id='dropdown_" + msg["Id"] + "'>"
+                                                        +       "<a class='btn btn-secondary dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>"
+                                                        +           "<i class='fa fa-sort-desc' aria-hidden='true'></i>"
+                                                        +       "</a>"
+                                                        +           "<div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+                                                        +               "<a class='dropdown-item' href='#' onclick='EditComment(cmt_" + msg["Id"] + ")'>Sửa</a>"
+                                                        +               "<a class='dropdown-item' href='#' onclick='RemoveComment(cmt_" + msg["Id"] + ")'>Xóa</a>"
+                                                        +       "</div></div></div>");
+                                }
+                            });
+                        }
+                    },
+                    statusCode: {
+                        400: function (resp) {
+                            console.log(resp.responseJSON);
+
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: resp.responseJSON.Message
+                            });
+                        }
+                    }
+                });            
+            $("#input-comment").val("");
+            }
+        });
+
+
+        function SubmitComment(input, rEPLY) {            
+            if ($("#" + input).val().length > 0) {
+                var cONTENT = $("#" + input).val();                 
+
+                 $.ajax({
+                    type: "POST",
+                    url: "@Url.Action("SubmitComment")",
+                    data: {
+                        cONTENT: cONTENT,
+                        rEPLY: rEPLY
+                    },
+                    success: function (msg) {                         
+                        if (msg == null) {
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: 'Lỗi insert Comment Table',
+                            }, userInput => {
+                                location.reload();
+                            });
+                        }
+                        else {
+                            $.ajax({
+                                type: "GET",
+                                url: "@Url.Action("GetCurrentUserAsync")",
+                                data: {},
+                                traditional: true,
+                                dataType: 'json',
+                                success: function (data) {
+                                    //$("#comment").append("<div id='cmt_" + msg["Id"] + "'>"
+                                    //                    +   "<p>" + data["FullName"] + ":" + "</p>"
+                                    //                    +   "<p id='" + msg["Id"] + "'>" + msg["Content"] + "</p>"
+                                    //                    +   "<p>" + msg["DateComment"] + "</p>"
+                                    //                    + "<a href='#' onclick=ReplyComment('cmt_" + msg["Id"] + "')> Trả lời </a>"
+                                    //                    +   "<div class='dropdown' id='dropdown_" + msg["Id"] + "'>"
+                                    //                    +       "<a class='btn btn-secondary dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>"
+                                    //                    +           "<i class='fa fa-sort-desc' aria-hidden='true'></i>"
+                                    //                    +       "</a>"
+                                    //                    +           "<div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+                                    //                    +               "<a class='dropdown-item' href='#' onclick='EditComment(cmt_" + msg["Id"] + ")'>Sửa</a>"
+                                    //                    +               "<a class='dropdown-item' href='#' onclick='RemoveComment(cmt_" + msg["Id"] + ")'>Xóa</a>"
+                                    //    + "</div></div></div>");
+                                    var temp = "";                        
+                                    var date = new Date(msg["DateComment"]);
+                                    date = date.getDate() + "-" + date.getMonth() + "-" + date.getFullYear();
+                                    if (msg["User"] != "") {
+                                        temp = "<div class='dropdown' id='dropdown_" + msg["Id"] + "'>"
+                                            + "<a class='btn btn-default dropdown-toggle' type='button' id='dropdownMenuButton' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>"
+                                            + "<i class='fa fa-sort-desc' aria-hidden='true'></i></a>"
+                                            + "<div class='dropdown-menu' aria-labelledby='dropdownMenuButton'>"
+                                            + "<a class='dropdown-item' href='#' onclick='EditComment(cmt_" + msg["Id"] + ")'>Sửa</a>"
+                                            + "<a class='dropdown-item' href='#' onclick='RemoveComment(cmt_" + msg["Id"] + ")'>Xóa</a>"
+                                            + "</div></div>";
+                                    }                                    
+                                    if (msg["ReplyID"] == null) {
+                                        $("#comment > ul").append(
+                                        "<li id='cmt_" + msg["Id"] + "'>"
+                                            + "<div>"
+                                            +   "<div aria-label='Bình luận'>"
+                                            +       "<div class='' style='display: inline-flex;'>"
+                                            +           "<div class='cmt-div' style='display: inline-flex;padding-right: 30px;'>"
+                                            +               "<p style='padding-right: 30px;'>"+ data["FullName"] + "</p>"
+                                            +               "<p id='" + msg["Id"] + "'>" + msg["Content"] + "</p>"
+                                            +               "<p hidden>" + value["ReplyID"] + "</p>"
+                                            +           "</div>"
+                                            +           "<div class='options-div'>"
+                                            +               temp
+                                            +           "</div>"
+                                            +       "</div>"
+                                            +       "<div style='display: flex;'>"
+                                            +            "<a href='#' onclick=ReplyComment('cmt_" + msg["Id"] + "')> Trả lời </a>"
+                                            +            "<p style='padding-left: 100px;'>" + date + "</p>"
+                                            +       "</div>"
+                                            +   "</div>"
+                                            + "</div>"
+                                            + "<div class='reply-cmt'>"
+                                            +   "<ul>"
+                                            +   "</ul>"
+                                            +"</div>"
+                                        + "</li>");
+                                    }
+                                    else {
+                                        $("#cmt_" + msg["ReplyID"]).find(".reply-cmt").find("ul").append(
+                                            "<li id='cmt_" + msg["Id"] + "'>"
+                                            + "<div>"
+                                            +   "<div aria-label='Bình luận'>"
+                                            +       "<div class='' style='display: inline-flex;'>"
+                                            +           "<div class='cmt-div' style='display: inline-flex;padding-right: 30px;'>"
+                                            +               "<p style='padding-right: 30px;'>"+ msg["User"]["FullName"] + "</p>"
+                                            +               "<p id='" + msg["Id"] + "'>" + msg["Content"] + "</p>"
+                                            +               "<p hidden>" + value["ReplyID"] + "</p>"
+                                            +           "</div>"
+                                            +           "<div class='options-div'>"
+                                            +               temp
+                                            +           "</div>"
+                                            +       "</div>"
+                                            +       "<div style='display: flex;'>"
+                                            +            "<a href='#' onclick=ReplyComment('cmt_" + msg["Id"] + "')> Trả lời </a>"
+                                            +            "<p style='padding-left: 100px;'>" + date + "</p>"
+                                            +       "</div>"
+                                            +   "</div>"
+                                            + "</div>"
+                                        + "</li>");                                                  
+                                    }
+                                }
+                            });
+                        }
+                    },
+                    statusCode: {
+                        400: function (resp) {
+                            console.log(resp.responseJSON);
+
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: resp.responseJSON.Message
+                            });
+                        }
+                    }
+                });
+
+            //var jsonData = JSON.stringify($("#input-comment").val());
+            $("#" + input).val("");
+            }
+        };
+        function EditComment(ID) {
+            var cOUNT = $(ID).find("p").eq(1).attr("id");
+            $("#dropdown_" + cOUNT).hide();
+            if ($("#editTextBox").val() != null) {
+                $("#" + $("#temp-input").val()).show();
+                $("#dropdown_" + $("#temp-input").val()).show();
+                $("#editTextBox").remove();
+            }
+            var cONTENT = $(ID).find("p").eq(1).text();
+            $(ID).find("p").eq(1).hide();
+            $("#temp-input").val($(ID).find("p").eq(1).attr("id"));
+            $("<input id='editTextBox' type='text' size='40' value='" + cONTENT + "'/>").insertBefore($(ID).find("p").eq(1));
+
+            $("#editTextBox").keyup(function (event) {
+                var keycode = (event.keyCode ? event.keyCode : event.which);
+                if (keycode == '13') {
+                    var iD = $(ID).find("p").eq(1).attr("id");
+                    var cONTENT = $(this).val();
+
+                    $(this).remove();
+                    $(ID).find("p").eq(1).show();
+                    $("#dropdown_" + cOUNT).show();
+
+
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("EditComment")",
+                        data: {
+                            ID: iD,
+                            cONTENT: cONTENT
+                        },
+                        success: function (bool) {
+                            if (bool == true) {
+                                $(ID).find("p").eq(1).text(cONTENT);
+                            }
+                        }
+                    });
+
+                }
+                if (keycode == '27') {
+                    $(ID).find("p").eq(1).text(cONTENT);
+                    $(this).remove();
+                    $(ID).find("p").eq(1).show();
+                    $("#dropdown_" + cOUNT).show();
+                }
+            });
+        };
+        function RemoveComment(ID) {
+            var cONTENT = $(ID).find("p").eq(1).text();
+            var dateTime = $(ID).find("p").eq(2).text();
+            var iD = $(ID).find("p").eq(1).attr("id");            
+            ID.remove();
+
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("DeleteComment")",
+                data: {
+                    ID: iD
+                },
+                success: function (bool) {
+                    if (bool == false) {                        
+                    }
+                }
+            });
+        }
+
+        function ReplyComment(ID) {
+            var replyID = $("#" + ID).find("p").eq(2).text();
+            var iD = $("#" + ID).find("p").eq(1).attr("id");
+
+            if (replyID === 'null') {
+                if ($("#" + ID).find("input").length < 1) {                    
+                    var iNSERT = "<div style='display: flex'>"
+                        + "<input type='text' class='form-control' id='input-comment-" + iD + "' style='max-width: 50%' />"
+                        + "<a class='ui button main submit_form' onclick=SubmitComment('input-comment-" + iD + "','" + iD + "') style='color: white'>Gửi bình luận</a>"
+                        + "</div>";
+                    $(iNSERT).insertAfter($("#" + ID).find(".reply-cmt > ul"));
+                }
+            }
+            else {
+                if ($("#cmt_" + replyID).find("input").length < 1) {                    
+                    var iNSERT = "<div style='display: flex'>"
+                        + "<input type='text' class='form-control' id='input-comment-" + iD + "' style='max-width: 50%' />"
+                        + "<a class='ui button main submit_form' onclick=SubmitComment('input-comment-" + iD + "','" + replyID + "') style='color: white'>Gửi bình luận</a>"
+                        + "</div>";
+                    $(iNSERT).insertAfter($("#cmt_" + replyID).find(".reply-cmt > ul"));
+                }
+            }                                
+        }
+
+        // Init Input Format
+        //var multipleEle = new AutoNumeric.multiple('[data-format=currency]',
+        //    {
+        //        decimalPlaces: 0
+        //    });
+
+        //new AutoNumeric.multiple('[data-format=percent]',
+        //    {
+        //        decimalPlaces: 2,
+        //        rawValueDivisor: 100,
+        //        currencySymbol: " %",
+        //        currencySymbolPlacement: 's',
+
+        //    });
+
+        function updateScrollBar() {
+            var contentWidth = $('.e-content').width();
+            var targetWidth = $('#form-content').width();
+
+            var zoomLevel = $('.e-content').css('zoom');
+
+            // Set width
+            $('.horizontal-bar .scrollbar').width(contentWidth).css("zoom", zoomLevel);
+            $('.horizontal-bar').width(targetWidth);
+        }
+
         function updateIndex() {
 
-            $('table.e-content tr').each(function(index) {
+            $('table.e-content tr').each(function (index) {
 
-                // Select all td 
-                $(this).find('td').each(function(tdIndex) {
+                // Select all td
+                $(this).find('td').each(function (tdIndex) {
 
                     // Get Address
                     var address = $(this).data('address');
@@ -168,7 +727,7 @@
                             $(this).attr('data-address', newAddress);
 
                             // Update address for all input
-                            $(this).find('input').each(function(eleIndex) {
+                            $(this).find('input').each(function (eleIndex) {
 
                                 var address = $(this).data('address');
 
@@ -180,7 +739,7 @@
                                     $(this).attr('name', newAddress);
 
                                     // Find all childs element base on this input
-                                    $('table.e-content tr td input[base=' + address + ']').each(function(childIndex) {
+                                    $('table.e-content tr td input[base=' + address + ']').each(function (childIndex) {
 
                                         // Update Base Address
                                         $(this).attr('data-base', newAddress);
@@ -190,7 +749,7 @@
                                 }
 
                             });
-                            
+
                         }
                     }
 
@@ -200,20 +759,18 @@
 
         }
 
-        // Init Input Format
-        new AutoNumeric.multiple('input[id^=currency]',
-            {
-                decimalPlaces: 0
-            });
+        $(window).scroll(function() {
+            var calculatorOffset = ($(this).scrollTop() + ($(this).innerHeight() * 1)) -
+                ($('#form-content').height() + $('#form-content').position().top);
 
-        new AutoNumeric.multiple('input[id^=percent]',
-            {
-                decimalPlaces: 2,
-                rawValueDivisor: 100,
-                currencySymbol: " %",
-                currencySymbolPlacement: 's',
-
-            });
+            if (Math.round(calculatorOffset) <= -57) {
+                // Show scrollbar
+                $('div.horizontal-bar').css("opacity", 1);
+            } else {
+                // Hide scrollbar
+                $('div.horizontal-bar').css("opacity", 0);
+            }
+        });
 
     </script>
 }

@@ -1,17 +1,558 @@
-﻿@{
-    ViewData["Title"] = "Contact";
+﻿@*@{
+        ViewData["Title"] = "About";
+    }
+    <h2>@ViewData["Title"]</h2>
+    <h3>@ViewData["Message"]</h3>
+
+    <p>Use this area to provide additional information.</p>*@
+@using OfficeOpenXml.FormulaParsing.Excel.Functions.Math
+@model CoreApi.ViewModels.FormViewModels.FormViewModel
+@{
+    ViewData["Title"] = Model.Name;
 }
-<h2>@ViewData["Title"]</h2>
-<h3>@ViewData["Message"]</h3>
 
-<address>
-    One Microsoft Way<br />
-    Redmond, WA 98052-6399<br />
-    <abbr title="Phone">P:</abbr>
-    425.555.0100
-</address>
+@{
+    <div asp-validation-summary="All" class="text-danger"></div>
 
-<address>
-    <strong>Support:</strong> <a href="mailto:Support@example.com">Support@example.com</a><br />
-    <strong>Marketing:</strong> <a href="mailto:Marketing@example.com">Marketing@example.com</a>
-</address>
+    if (!string.IsNullOrEmpty(Model.FormHtmlContent))
+    {
+        if (Model.StepsDetails.Count > 1)
+        {
+            <div class="ui tablet stackable steps">
+                @for (int i = 0; i < Model.StepsDetails.Count; i++)
+                {
+                    var additionClass = "";
+
+                    if (!Model.StepsDetails[i].IsActive)
+                    {
+                        additionClass = "disabled";
+                    }
+                    if (Model.StepsDetails[i].IsCurrent)
+                    {
+                        additionClass = "active";
+                    }
+
+                    <div class="step @additionClass" style="width: @(100 / Model.StepsDetails.Count)%">
+                        <div class="step-container">
+                            <div class="step-index">@(i + 1)</div>
+                            <div class="content">
+                                <div class="title">@Model.StepsDetails[i].Name</div>
+                                <div class="description">@Model.StepsDetails[i].Description</div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.StepsDetails[i].InfoTitle))
+                            {
+                                <div class="info">
+                                    <div class="name">@Model.StepsDetails[i].InfoTitle</div>
+                                    <div class="date">@Model.StepsDetails[i].InfoDescription</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="ui divider"></div>
+
+        <div class="ui grid">
+            <div class="column row">
+                <div class="right floated two column">
+                    <div class="message-tip">
+                        <p class="main-color">Tip: Các công thức tính toán, số liệu chỉ <b>Cập Nhật</b> khi bạn nhấn nút <b>Lưu Nháp</b> phía dưới.</p>
+                    </div>
+                    <div class="form-control-buttons">
+                        <button id="print" class="ui blue labeled icon button">
+                            <i class="print icon"></i>
+                            In biểu mẫu
+                        </button>
+
+                        <button id="zoom-in" class="ui labeled icon button">
+                            <i class="search plus icon"></i>
+                            Phóng to
+                        </button>
+                        <button id="zoom-out" class="ui labeled icon button">
+                            <i class="search minus icon"></i>
+                            Thu nhỏ
+                        </button>
+                        <button id="zoom-reset" class="ui labeled icon button">
+                            <i class="undo icon"></i>
+                            Hoàn tác
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="form-content">
+            <div class="ui inverted dimmer">
+                <div class="ui text loader">Đang gửi thông tin đến máy chủ</div>
+            </div>
+
+            <div class="form-table">
+                <table class="e-content" style="zoom: 0.8">
+                    <tbody>
+                        @Html.Raw(Model.FormHtmlContent)
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="horizontal-bar">
+                <div class="scrollbar"></div>
+            </div>
+
+            @if (Model.IsAllowEditable)
+            {
+                <div class="buttons_layout">                    
+                    <button class="ui button main submit_form" id="accept-form" value="true">Duyệt</button>
+                    <button class="ui button red submit_form" id="decline-form" value="true">Từ chối</button>
+                </div>
+            }
+        </div>
+
+
+    }
+
+    <!-- Model -->
+    <div id="info-modal" class="ui tiny test modal">
+        <div class="header">
+            Delete Your Account
+        </div>
+        <div class="content">
+            <p>Are you sure you want to delete your account</p>
+        </div>
+        <div class="actions">
+            <div class="ui approve button main right labeled icon">
+                Đồng ý
+                <i class="checkmark icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="ui tiny test modal">
+        <div class="header">
+            Delete Your Account
+        </div>
+        <div class="content">
+            <p>Are you sure you want to delete your account</p>
+        </div>
+        <div class="actions">
+            <div class="ui negative button">
+                Không
+            </div>
+            @*<div id="next-step" class="ui button main right labeled icon">*@
+            <div id="accept-submit" class="ui button main right labeled icon">
+                Đồng ý
+                <i class="checkmark icon"></i>
+            </div>
+        </div>
+    </div>
+
+}
+
+@section css
+    {
+    <style type="text/css">
+        .form-control-buttons {
+            float: right;
+        }
+    </style>
+    <link id="form-style" rel="stylesheet" href="~/css/views/form/form.css" asp-append-version="true" />
+}
+
+@section Scripts
+    {
+    <!-- AutoNumeric Library -->
+    <script src="~/dist/autoNumeric.min.js"></script>
+    <script src="~/js/site.js"></script>
+    <script src="~/js/modal.js"></script>
+    <script src="~/dist/printThis.js"></script>
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+            var zoomLevel = 0.8;
+
+            $("#zoom-in").click(function() {
+                $(".e-content").css("zoom", zoomLevel += 0.05);
+                updateScrollBar();
+            });
+
+            $("#zoom-out").click(function () {
+                $(".e-content").css("zoom", zoomLevel -= 0.05);
+                updateScrollBar();
+            });
+
+            $("#zoom-reset").click(function () {
+                zoomLevel = 0.8;
+                $(".e-content").css("zoom", zoomLevel);
+                updateScrollBar();
+            });
+
+            // Handle input number type
+            $("input[data-format=number]").keydown(function (e) {
+
+                // Allow: backspace, delete, tab, escape, enter and .
+                if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 110, 190, 188]) !== -1 ||
+
+                    // Allow: Ctrl+A, Command+A
+                    (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
+
+                    // Allow: home, end, left, right, down, up
+                    (e.keyCode >= 35 && e.keyCode <= 40)) {
+
+                    // let it happen, don't do anything
+                    return;
+                }
+
+                // Ensure that it is a number and stop the keypress
+                if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                    e.preventDefault();
+                }
+            });
+
+            // Handle add Plus Row button
+            $("tr[groupindex]").before('<div class="add-row"><i class="plus icon"></i></div>');
+
+            // Handle add delete row button
+            $("tr[type='added']").before('<div class="delete-row"><i class="minus icon"></i></div>');
+
+            // Detect change
+            $("td[data-address=33-4]").on('change', function () {
+                console.log("Detect changes");
+            });
+
+            // Handle plus button clicked
+            $(".add-row").on('click', function () {
+
+                // Get Html of current row
+                var row = $(this).next();
+
+                if (row !== undefined) {
+
+                    // Add Row
+                    var nextRow = row.clone();
+
+                    // Edit Id
+                    nextRow.removeAttr('groupindex').attr('type', 'added');
+
+                    var isFirstRow = true;
+
+                    // Handle first row
+                    if ($(this).prev().attr('type') === 'added')
+                        isFirstRow = false;
+
+                    // Edit address
+                    nextRow.find('td').each(function (index) {
+
+                        // Select Input
+                        var inputEle = $(this).find('input');
+
+                        if (inputEle !== 'undefined' && inputEle.length > 0) {
+
+                            // Get address
+                            var address = inputEle.attr('data-address');
+
+                            if (isFirstRow) {
+                                $('input[name=' + address + ']').attr('data-base', address);
+                            }
+
+                            // Update New Address for current row
+                            $('input[name=' + address + ']').val('');   // Clear value
+                        }
+
+                    });
+
+                    $(this).before(nextRow);
+
+                    // Add Button for
+                    nextRow.before('<div class="delete-row"><i class="minus icon"></i></div>');
+
+                    // Update index all rows added
+                    updateIndex();
+
+                    $("td[data-address=33-4]").trigger('change');
+                }
+            });
+
+            // Handle delete button clicked
+            $(".e-content").on('click', 'div', function () {
+
+                // Check type
+                if ($(this).attr('class') === "delete-row") {
+                    var row = $(this).next();
+                    if (row !== 'undefined' && row.length > 0) {
+
+                        // Delete row and button
+                        row.remove();
+                        $(this).remove();
+
+                        // Update index all rows added
+                        updateIndex();
+                    }
+                }
+            });
+
+                // Hide dimmer
+                //$("#form-content").showDimmer();
+
+                // Create json
+                //var jsonData = JSON.stringify(listInputs);
+                @*$.ajax({
+                    type: "POST",
+                    url: "@Url.Action("SaveDraft")",
+                    data: jsonData,
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function (msg) {
+                        $('#info-modal').showModal({
+                            title: 'Thông báo',
+                            message: 'Đã lưu thành công dữ liệu của bạn.',
+                        });
+
+                        location.reload();
+                    },
+                    statusCode: {
+                        400: function (resp) {
+                            console.error(resp.responseJSON);
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: resp.responseJSON.Message
+                            });
+                        }
+                    },
+                }).always(function() {
+                    $("#form-content").hideDimmer();
+                });*@
+            });
+
+            // Init dropdown
+            // Show loading submit button
+            $('button#submit-form').addClass("loading");
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetUsersSubmit", new {formId = @Model.FormId, formDataId = -1})",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function(msg) {
+
+                    $.each(msg.Data,
+                        (index, item) => {
+                            $("#accept-list > div.menu").append('<div class="item" data-value="' + item.EmpCode + '"><div class="title">' + item.FullName + '</div><div class="sub-title">' + item.Title + '</div></div>');
+                        });
+                },
+                statusCode: {
+                    400: function (resp) {
+                        console.log(resp.responseJSON);
+                    }
+                }
+            })
+            .always(function() {
+                $('button#submit-form').removeClass("loading");
+            });
+
+            $("#accept-list").dropdown();
+
+            // Submit form
+            $("#accept-form").click(function () {
+                    $('#confirm-modal').showModal({
+                        title: 'Thông báo',
+                        message: 'Bạn có chắc chắn <b>Duyệt biểu mẫu</b> hay không?'
+                    });
+            });
+
+            $("#decline-form").click(function () {
+                $('#confirm-modal').showModal({
+                    title: 'Thông báo',
+                    message: 'Bạn có chắc chắn <b>Từ chối biểu mẫu</b> hay không?'
+                });
+            });
+
+
+            // Submit form confirm
+            $("#accept-submit").click(function () {
+
+                var listInputs = [];
+
+                // Get all field input from form
+                $("table.e-content input[data-address], table.e-content select[data-address]").each(function () {
+
+                    if ($(this).val().length > 0) {
+                        var item = {};
+                        var dataFormat = "text";
+                        item['Address'] = $(this).attr('data-address');
+                        item['Value'] = $(this).val();
+
+                        // Add to list
+                        listInputs.push(item);
+                    }
+                });
+
+                $("#form-content").showDimmer();
+
+                var jsonData = JSON.stringify(listInputs);
+
+                if ($("#accept-form").val().length > 0) {
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("SubmitForm")",
+                        data: jsonData,
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        success: function (msg) {
+
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: msg.Data,
+                            }, userInput => {
+                                location.reload();
+                            });
+
+                        },
+                        statusCode: {
+                            400: function (resp) {
+                                console.log(resp.responseJSON);
+
+                                $('#info-modal').showModal({
+                                    title: 'Thông báo',
+                                    message: resp.responseJSON.Message
+                                });
+                            }
+                        }
+                    }).always(function () {
+                        $("#form-content").hideDimmer();
+                    });
+                }
+                else if ($("#decline-form").val().length > 0) {
+                    $.ajax({
+                        type: "POST",
+                        url: "@Url.Action("DeclineForm")",
+                        data: jsonData,
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        success: function (msg) {
+
+                            $('#info-modal').showModal({
+                                title: 'Thông báo',
+                                message: msg.Data,
+                            }, userInput => {
+                                location.reload();
+                            });
+
+                        },
+                        statusCode: {
+                            400: function (resp) {
+                                console.log(resp.responseJSON);
+
+                                $('#info-modal').showModal({
+                                    title: 'Thông báo',
+                                    message: resp.responseJSON.Message
+                                });
+                            }
+                        }
+                    }).always(function () {
+                        $("#form-content").hideDimmer();
+                        $.ajax({
+                            type: 'GET',
+                            url: @Url.Action("Index"),
+                            datatype: "html",
+                            success: function () {}
+                        });
+                    });
+                }
+            });
+
+        // Init Input Format
+        var multipleEle = new AutoNumeric.multiple('[data-format=currency]',
+            {
+                decimalPlaces: 0
+            });
+
+        new AutoNumeric.multiple('[data-format=percent]',
+            {
+                decimalPlaces: 2,
+                rawValueDivisor: 100,
+                currencySymbol: " %",
+                currencySymbolPlacement: 's',
+
+            });
+
+        function updateScrollBar() {
+            var contentWidth = $('.e-content').width();
+            var targetWidth = $('#form-content').width();
+
+            var zoomLevel = $('.e-content').css('zoom');
+
+            // Set width
+            $('.horizontal-bar .scrollbar').width(contentWidth).css("zoom", zoomLevel);
+            $('.horizontal-bar').width(targetWidth);
+        }
+
+        function updateIndex() {
+
+            $('table.e-content tr').each(function (index) {
+
+                // Select all td
+                $(this).find('td').each(function (tdIndex) {
+
+                    // Get Address
+                    var address = $(this).data('address');
+
+                    if (address !== 'undefined' && address.length > 0) {
+
+                        var addresses = address.split('-');
+                        if (addresses.length === 2) {
+
+                            var cellIndex = addresses[1];
+                            var newAddress = index + 1 + '-' + cellIndex;
+
+                            // Update for td
+                            $(this).attr('data-address', newAddress);
+
+                            // Update address for all input
+                            $(this).find('input').each(function (eleIndex) {
+
+                                var address = $(this).data('address');
+
+                                // If new address are not equals old address then update new address and all childs are inherit from base
+                                if (newAddress !== address) {
+
+                                    // Update Address
+                                    $(this).attr('data-address', newAddress);
+                                    $(this).attr('name', newAddress);
+
+                                    // Find all childs element base on this input
+                                    $('table.e-content tr td input[base=' + address + ']').each(function (childIndex) {
+
+                                        // Update Base Address
+                                        $(this).attr('data-base', newAddress);
+
+                                    });
+
+                                }
+
+                            });
+
+                        }
+                    }
+
+                });
+
+            });
+
+        }
+
+        $(window).scroll(function() {
+            var calculatorOffset = ($(this).scrollTop() + ($(this).innerHeight() * 1)) -
+                ($('#form-content').height() + $('#form-content').position().top);
+
+            if (Math.round(calculatorOffset) <= -57) {
+                // Show scrollbar
+                $('div.horizontal-bar').css("opacity", 1);
+            } else {
+                // Hide scrollbar
+                $('div.horizontal-bar').css("opacity", 0);
+            }
+        });
+
+    </script>
+}
