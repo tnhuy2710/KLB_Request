@@ -23,6 +23,8 @@ namespace CoreApi.Data.Repositories
 
         Task<UserForm> GetFormDataAsync(string formId);
 
+        Task<UserForm> GetFormDataForViewAsync(string formId);
+
         Task<IList<UserForm>> GetFormsDataAsync(string formId);
 
         Task<IList<UserForm>> GetFormsDataByUserIdAsync(string userId);
@@ -48,7 +50,7 @@ namespace CoreApi.Data.Repositories
         Task<bool> Insert_Into(UserForm _userForm);
 
         Task<bool> Update_ExpireInAsync(string currentStepID);
-        string GetFormStepDataAsync(string FormID);
+        Task<UserForm> GetFormStepDataAsync(string FormID);
     }
 
     public class UserFormRepository : BaseRepository<UserForm, long>, IUserFormRepository
@@ -111,15 +113,20 @@ namespace CoreApi.Data.Repositories
         public async Task<UserForm> GetFormDataAsync(string formId, string userId)
         {
             return await Db.UserForms
-                .Where(x => x.FormId.Equals(formId.MakeLowerCase()) && x.UserId.Equals(userId.MakeLowerCase()))
+                .Where(x => x.FormId.Equals(formId) && x.UserId.Equals(userId.MakeLowerCase()) && x.CurrentStep.Confirm == -1)                
                 .Include(x => x.Form)
                 .Include(x => x.User)
+                .Include(x => x.CurrentStep)
                 .FirstOrDefaultAsync();
         }
 
         public async Task<UserForm> GetFormDataAsync(string formId)
         {
-            return null;
+            return await Db.UserForms
+                        .Where(x => x.FormId.Equals(formId) && x.CurrentStep.Confirm == -1)
+                        .Include(x => x.Form)
+                        .Include(x => x.CurrentStep)
+                        .FirstOrDefaultAsync();
         }        
 
         public async Task<IList<UserForm>> GetFormsDataAsync(string formId)
@@ -327,12 +334,18 @@ namespace CoreApi.Data.Repositories
             return true;
         }
 
-        public string GetFormStepDataAsync(string FormID)
+        public async Task<UserForm> GetFormStepDataAsync(string FormID)
         {
-            var current_StepId = from userForm in Db.UserForms
-                                 where userForm.FormId.Equals(FormID)
-                                 select userForm.CurrentStepId;
-            return current_StepId.FirstOrDefault();
+            return await Db.UserForms
+                        .Where(x => x.FormId.Equals(FormID.MakeLowerCase()) && x.CurrentStep.Id.Equals(x.CurrentStepId) && x.CurrentStep.Confirm == -1)
+                        .Include(x => x.Form)
+                        .Include(x => x.User)
+                        .Include(x => x.CurrentStep)
+                        .FirstOrDefaultAsync();
+            //return await (from userForm in Db.UserForms
+            //                     where userForm.FormId.Equals(FormID)
+            //                     select userForm.CurrentStepId).FirstOrDefaultAsync();
+            //return await current_StepId.FirstOrDefaultAsync();
 
         }
 
@@ -343,13 +356,20 @@ namespace CoreApi.Data.Repositories
             try
             {
                 Db.Entry(_userForm).State = EntityState.Modified;
-                await Db.SaveChangesAsync();
-                return true;
+                await Db.SaveChangesAsync();                
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }
+            return true;
+        }
+
+        public async Task<UserForm> GetFormDataForViewAsync(string formId)
+        {
+            return await Db.UserForms.Where(x => x.FormId.Equals(formId))                
+                .Include(y => y.CurrentStep)
+                .LastOrDefaultAsync();
         }
     }
 }

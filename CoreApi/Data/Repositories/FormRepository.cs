@@ -8,9 +8,7 @@ using CoreApi.Extensions;
 using CoreApi.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Razor.Language;
 using Microsoft.EntityFrameworkCore;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.Math;
 
 namespace CoreApi.Data.Repositories
 {
@@ -20,9 +18,11 @@ namespace CoreApi.Data.Repositories
         Task<bool> Insert_Into(Form form);
         Task<int> Count_ID_Count(string id);
 
-        Task<bool> Update_FormAsync(string ID);
+        Task<Form> FindFormByID(string id);
 
-        Task<IList<Form>> GetAllGrantPermissionForViewAsync(Employee empDetails);        
+        Task<bool> UpdateFormAsync(string ID, int cONFIRM);
+
+        Task<IList<Form>> GetAllGrantPermissionForViewAsync(Employee empDetails);
     }
 
     public class FormRepository : BaseRepository<Form, string>, IFormRepository
@@ -127,10 +127,10 @@ namespace CoreApi.Data.Repositories
             return Db.Forms.Count(a => a.Id.Contains(ID)) + 1;
         }
 
-        public async Task<bool> Update_FormAsync(string ID)
+        public async Task<bool> UpdateFormAsync(string ID, int cONFIRM)
         {
             Form _form = Db.Forms.Where(x => x.Id.Equals(ID)).FirstOrDefault();
-            _form.Confirm = 1;            
+            _form.Confirm = cONFIRM;            
             try
             {
                 Db.Entry(_form).State = EntityState.Modified;
@@ -141,6 +141,11 @@ namespace CoreApi.Data.Repositories
                 return false;
             }
             return true;
+        }
+
+        public async Task<Form> FindFormByID(string id)
+        {
+            return await Db.Forms.Where(x => x.Id.Equals(id)).FirstOrDefaultAsync();
         }
     }
 }

@@ -44,6 +44,7 @@ namespace CoreApi.Data
         public DbSet<UserFormAssign> UserFormAssigns { get; set; }
         public DbSet<UserFormValueStorage> UserFormValueStorages { get; set; }
 
+        public DbSet<Comment> Comments { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

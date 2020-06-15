@@ -62,6 +62,8 @@ namespace CoreApi.Data.Repositories
         Task<GrantPermissionResult> IsGrantPermissionForThisStepAsync(FormStep step, string empCode, UserForm userForm = null, IList<Employee> acceptList = null, bool isDeepCheck = true);
         Task<GrantPermissionResult> IsGrantPermissionForThisStepAsync(FormStep step, Employee employeeDetails, UserForm userForm = null, IList<Employee> acceptList = null, bool isDeepCheck = true);
 
+        Task<GrantPermissionResult> IsGrantPermissionForThisStepAsync(IList<FormStep> step, Employee employeeDetails);
+
         //
 
         GrantPermissionResult IsGrantPermissionForView(FormStep step, Employee employeeDetails);
@@ -69,7 +71,7 @@ namespace CoreApi.Data.Repositories
 
         Task<bool> Insert_Into(FormStep _formStep);
 
-        Task<FormStep> UpdateFormSteps(string ID);
+        Task<bool> UpdateFormSteps(string ID, int cONFIRM);
     }
 
     public class FormStepRepository : BaseRepository<FormStep, string>, IFormStepRepository
@@ -101,110 +103,112 @@ namespace CoreApi.Data.Repositories
             var listItems = new List<FormStep>();
             if (empDetails != null)
             {
-                // Get all from by group, level
-                var formsByGroup = await Db.FormSteps
-                    .Where(x => x.GroupIds.Contains("|" + empDetails.PositionCode + "|"))
+                // // Get all from by group, level
+                // var formsByGroup = await Db.FormSteps
+                //     .Where(x => x.GroupIds.Contains("|" + empDetails.PositionCode + "|"))
+                //     .Include(y => y.Form)
+                //     .ToListAsync();
+                // if (formsByGroup?.Count > 0)
+                // {
+                //     foreach (var formStep in formsByGroup)
+                //     {
+                //         var groupIds = formStep.GroupIds.TrySplit(";");
+                //         if (groupIds.Length > 0)
+                //         {
+                //             foreach (var groupId in groupIds)
+                //             {
+                //                 var groupEles = groupId.Split('|');
+
+                //                 var eEmpCode = groupEles[0];
+                //                 var eGroupId = groupEles[1];
+                //                 var eLevel1Id = groupEles[2];
+                //                 var eLevel2Id = groupEles[3];
+
+                //                 if (!string.IsNullOrEmpty(eGroupId))
+                //                 {
+                //                     if (string.IsNullOrEmpty(eLevel1Id))
+                //                     {
+                //                         listItems.Add(formStep);
+                //                         goto nextForm;
+                //                     }
+                //                     else
+                //                     {
+                //                         if (empDetails.Level1Id.Equals(eLevel1Id) &&
+                //                             empDetails.Level2Id.Equals(eLevel2Id))
+                //                         {
+                //                             listItems.Add(formStep);
+                //                             goto nextForm;
+                //                         }
+                //                     }
+                //                 }
+                //             }
+                //         }
+
+                //     nextForm:;
+                //     }
+                // }
+
+                //// Get all form by empCode
+                //var formByEmpCode = await Db.FormSteps
+                //    .Where(x => x.GroupIds.Contains(empDetails.EmpCode + "|"))
+                //    .Include(y => y.Form)
+                //    .ToListAsync();
+                // if (formByEmpCode?.Count > 0)
+                // {
+                //     foreach (var _formStep in formByEmpCode)
+                //     {
+                //         var groupIds = _formStep.GroupIds.TrySplit(";");
+                //         if (groupIds.Length > 0)
+                //         {
+                //             foreach (var groupId in groupIds)
+                //             {
+                //                 var groupEles = groupId.Split('|');
+                //                 try
+                //                 {
+                //                     var eEmpCode = groupEles[0];
+                //                     var eGroupId = groupEles[1];
+                //                     var eLevel1Id = groupEles[2];
+                //                     var eLevel2Id = groupEles[3];
+
+                //                     if (!string.IsNullOrEmpty(eEmpCode))
+                //                     {
+                //                         listItems.Add(_formStep);
+                //                         goto nextForm;
+                //                     }
+                //                 }
+                //                 catch { }
+                //             }
+                //         }
+
+                //     nextForm:;
+                //     }
+                // }
+
+                var formByEmpCode = await Db.FormSteps
+                    .Where(x => x.GroupIds.Contains(empDetails.EmpCode) && x.Confirm == -1)
                     .Include(y => y.Form)
                     .ToListAsync();
-                if (formsByGroup?.Count > 0)
-                {
-                    foreach (var formStep in formsByGroup)
-                    {
-                        var groupIds = formStep.GroupIds.TrySplit(";");
-                        if (groupIds.Length > 0)
-                        {
-                            foreach (var groupId in groupIds)
-                            {
-                                var groupEles = groupId.Split('|');
-
-                                var eEmpCode = groupEles[0];
-                                var eGroupId = groupEles[1];
-                                var eLevel1Id = groupEles[2];
-                                var eLevel2Id = groupEles[3];
-
-                                if (!string.IsNullOrEmpty(eGroupId))
-                                {
-                                    if (string.IsNullOrEmpty(eLevel1Id))
-                                    {
-                                        listItems.Add(formStep);
-                                        goto nextForm;
-                                    }
-                                    else
-                                    {
-                                        if (empDetails.Level1Id.Equals(eLevel1Id) &&
-                                            empDetails.Level2Id.Equals(eLevel2Id))
-                                        {
-                                            listItems.Add(formStep);
-                                            goto nextForm;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                    nextForm:;
-                    }
-                }
-
-               // Get all form by empCode
-               var formByEmpCode = await Db.FormSteps
-                   .Where(x => x.GroupIds.Contains(empDetails.EmpCode + "|"))
-                   .Include(y => y.Form)
-                   .ToListAsync();
                 if (formByEmpCode?.Count > 0)
                 {
                     foreach (var _formStep in formByEmpCode)
                     {
-                        var groupIds = _formStep.GroupIds.TrySplit(";");
-                        if (groupIds.Length > 0)
+                        //if (await Db.UserForms.Where(x => x.CurrentStepId.Equals(_formStep.Id) && x.ExpireIn >= DateTime.Now)
+                        //                     .FirstOrDefaultAsync() != null)
+                        if (await Db.UserForms.Where(x => x.CurrentStepId.Equals(_formStep.Id))
+                                             .FirstOrDefaultAsync() != null)
                         {
-                            foreach (var groupId in groupIds)
-                            {
-                                var groupEles = groupId.Split('|');
-                                try
-                                {
-                                    var eEmpCode = groupEles[0];
-                                    var eGroupId = groupEles[1];
-                                    var eLevel1Id = groupEles[2];
-                                    var eLevel2Id = groupEles[3];
-
-                                    if (!string.IsNullOrEmpty(eEmpCode))
-                                    {
-                                        listItems.Add(_formStep);
-                                        goto nextForm;
-                                    }
-                                }
-                                catch { }
-                            }
+                            listItems.Add(_formStep);
                         }
-
-                    nextForm:;
                     }
                 }
-
-                //var formByEmpCode = await Db.FormSteps
-                //    .Where(x => x.GroupIds.Contains(empDetails.EmpCode + ",false") && x.Confirm == -1)
-                //    .Include(y => y.Form)
-                //    .ToListAsync();
-                //if (formByEmpCode?.Count > 0)
-                //{                    
-                //    foreach (var _formStep in formByEmpCode)
-                //    {
-                //        if(await Db.UserForms.Where(x => x.CurrentStepId.Equals(_formStep.Id) && String.IsNullOrEmpty(x.ExpireIn.ToString()))
-                //                             .FirstOrDefaultAsync() != null)
-                //        {
-                //            listItems.Add(_formStep);
-                //        }                                       
-                //    }
-                //}
             }
 
             return listItems;
         }
 
-        public async Task<IList<FormStep>> GetFormStepEditableByGroupIdAsync(string groupId)
+        public Task<IList<FormStep>> GetFormStepEditableByGroupIdAsync(string groupId)
         {
-            return null;
+            throw new NotImplementedException();
         }
 
         public async Task<IList<UserForm>> GetFormAssignedByEmpCodeAsync(string empCode)
@@ -462,7 +466,7 @@ namespace CoreApi.Data.Repositories
                     // Kiểm tra có được cấp quyền hay không
                     foreach (var step in steps)
                     {
-                        var check = await IsGrantPermissionForThisStepAsync(step, empDetail);
+                        var check = await IsGrantPermissionForThisStepAsync(step, empDetail, new UserForm());
                         if (check != null)
                         {
                             if (check.IsGrant && !result.IsGrant)
@@ -801,22 +805,27 @@ namespace CoreApi.Data.Repositories
             return listItems;
         }
 
-        public async Task<FormStep> UpdateFormSteps(string ID)
+        public async Task<bool> UpdateFormSteps(string ID, int cONFIRM)
         {
             FormStep _formStep = Db.FormSteps.Where(x => x.Id.Equals(ID)).FirstOrDefault();
-            _formStep.Confirm = 1;
+            _formStep.Confirm = cONFIRM;
+            _formStep.DateUpdated = DateTime.Now;
             var next_Step = _formStep.NextStepId;
             try
             {
                 Db.Entry(_formStep).State = EntityState.Modified;
                 await Db.SaveChangesAsync();
+                return true;
             }
-            catch(Exception e)
+            catch
             {
-                return null;
+                return false;
             }            
+        }
 
-            return await Db.FormSteps.Where(x => x.Id.Equals(next_Step)).FirstOrDefaultAsync();
+        public Task<GrantPermissionResult> IsGrantPermissionForThisStepAsync(IList<FormStep> step, Employee employeeDetails)
+        {
+            throw new NotImplementedException();
         }
     }
 }

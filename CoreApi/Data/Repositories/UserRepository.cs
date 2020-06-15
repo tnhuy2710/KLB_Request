@@ -245,7 +245,7 @@ namespace CoreApi.Data.Repositories
         }
 
         public async Task<UserEmployeeDetails> FindDetailsByEmpCodeAsync(string userId)
-        {
+        {            
             var item = await _db.ExecuteQueryAndReturnSingleAsync("prGetUserDetailsByEmpCode",
                 new Dictionary<string, object>()
                 {
