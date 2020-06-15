@@ -152,7 +152,7 @@ namespace CoreApi.Controllers
         {
             return (Request.Form != null && Request.Form.ContainsKey(fieldName)) ? ((string)Request.Form[fieldName]).Trim() : String.Empty;
         }
-
+       
         public string GetCurrentUserName()
         {
             var claim = User?.FindFirst(x => x.Type.Equals(ClaimTypes.Name));

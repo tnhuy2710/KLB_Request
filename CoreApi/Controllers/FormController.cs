@@ -652,7 +652,7 @@ namespace CoreApi.Controllers
 
             //
             var formDetails = await _formRepository.FindByIdAsync(formId);
-            if (formDetails == null) return RedirectToAction("Index", "Home");
+            //if (formDetails == null) return RedirectToAction("Index", "Home");
 
             vm.Id = formDetails.Id;
             vm.Name = formDetails.Name;
@@ -820,54 +820,54 @@ namespace CoreApi.Controllers
                 result = await _formStep.GetPermissionAsync(formId, GetCurrentUserId(), formData);
             }
 
-            if (result.IsGrant)
-            {
-                if (result.ActionType == FormStepActionType.Edit || result.ActionType == FormStepActionType.Confirm)
-                {
-                    // Get next step
-                    if (!string.IsNullOrEmpty(result.CurrentStep.NextStepId))
-                    {
-                        var nextStep = result.Steps.FirstOrDefault(x => x.Id.Equals(result.CurrentStep.NextStepId));
-                        if (nextStep != null)
-                        {
-                            // Check next step id Finish or not
-                            if (nextStep.Claims.Equals(FormStepActionType.View.ToString()))
-                                return BadRequest();
+            //if (result.IsGrant)
+            //{
+            //    if (result.ActionType == FormStepActionType.Edit || result.ActionType == FormStepActionType.Confirm)
+            //    {
+            //        // Get next step
+            //        if (!string.IsNullOrEmpty(result.CurrentStep.NextStepId))
+            //        {
+            //            var nextStep = result.Steps.FirstOrDefault(x => x.Id.Equals(result.CurrentStep.NextStepId));
+            //            if (nextStep != null)
+            //            {
+            //                // Check next step id Finish or not
+            //                if (nextStep.Claims.Equals(FormStepActionType.View.ToString()))
+            //                    return BadRequest();
 
-                            // Get all user in group and level2Id
-                            var users = await _employeeRepository.GetAllByGroupIdsAndEmpCodeAsync(nextStep.GroupIds, GetCurrentUserEmpCode(), await _customProperty.GetCustomFormPropertyAsync(formId,"KYDG"));
-                            if (users.Count > 0)
-                            {
-                                // Handle next step is duplicate
-                                var chk_user = users.FirstOrDefault(x => x.EmpCode.Equals(GetCurrentUserEmpCode()));
-                                if (/*users.FirstOrDefault(x => x.EmpCode.Equals(GetCurrentUserEmpCode()))*/ chk_user == null)
-                                {
-                                    return Success(users);
-                                }
-                                else
-                                {
-                                    //21-01-2019 hoangvm, Dat lại tên cho user neu co trong list, để biêt có quyền duyệt bước tiếp theo
-                                    //users.Remove(chk_user);
-                                    chk_user.FullName = "Duyệt các bước tiếp theo";
-                                    chk_user.Title = "Chỉ chọn nếu bạn có quyền ở bước tiếp theo";
-                                    return Success(users);
+            //                // Get all user in group and level2Id
+            //                var users = await _employeeRepository.GetAllByGroupIdsAndEmpCodeAsync(nextStep.GroupIds, GetCurrentUserEmpCode(), await _customProperty.GetCustomFormPropertyAsync(formId,"KYDG"));
+            //                if (users.Count > 0)
+            //                {
+            //                    // Handle next step is duplicate
+            //                    var chk_user = users.FirstOrDefault(x => x.EmpCode.Equals(GetCurrentUserEmpCode()));
+            //                    if (/*users.FirstOrDefault(x => x.EmpCode.Equals(GetCurrentUserEmpCode()))*/ chk_user == null)
+            //                    {
+            //                        return Success(users);
+            //                    }
+            //                    else
+            //                    {
+            //                        //21-01-2019 hoangvm, Dat lại tên cho user neu co trong list, để biêt có quyền duyệt bước tiếp theo
+            //                        //users.Remove(chk_user);
+            //                        chk_user.FullName = "Duyệt các bước tiếp theo";
+            //                        chk_user.Title = "Chỉ chọn nếu bạn có quyền ở bước tiếp theo";
+            //                        return Success(users);
 
-                                    //return BadRequest("Hide choose user model and direct accept form.", 400.2);
-                                }
-                            }
+            //                        //return BadRequest("Hide choose user model and direct accept form.", 400.2);
+            //                    }
+            //                }
 
-                            return BadRequest("Lỗi không tìm thấy bất kỳ nhân viên nào để thực hiện công việc tiếp theo.", 400.1);
-                        }
-                    }
-                }
-                else
-                {
-                    return Success();
-                }
+            //                return BadRequest("Lỗi không tìm thấy bất kỳ nhân viên nào để thực hiện công việc tiếp theo.", 400.1);
+            //            }
+            //        }
+            //    }
+            //    else
+            //    {
+            //        return Success();
+            //    }
 
-            }
-
-            return BadRequest();
+            //}
+            return Success();
+            //return BadRequest();
         }
 
         [HttpPost("{formId}/confirm/{userId}/accept")]
@@ -1279,8 +1279,8 @@ namespace CoreApi.Controllers
                     }
 
                     // Get User Details 
-                    Employee userDetails = await _employeeRepository.FindByEmpCodeAsync(targetEmpCode, await _customProperty.GetCustomFormPropertyAsync(formId, "KYDG"));
-                    //var userDetails = await _employeeRepository.FindByEmpCodeAsync(targetEmpCode);
+                    //Employee userDetails = await _employeeRepository.FindByEmpCodeAsync(targetEmpCode, await _customProperty.GetCustomFormPropertyAsync(formId, "KYDG"));
+                    var userDetails = await _employeeRepository.FindByEmpCodeAsync(targetEmpCode);
                     if (userDetails == null)
                     {
                         throw new Exception("Lỗi không tìm thấy thông tin nhân sự.");
