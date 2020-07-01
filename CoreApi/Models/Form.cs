@@ -21,5 +21,23 @@ namespace CoreApi.Models
         public string ViewPermissions { get; set; }
 
         public Nullable<int> Confirm { get; set; }
+
+        public Form()
+        {
+
+        }
+        public Form(string Id, string Name, string Description, int SheetIndex, string FileType, DateTimeOffset PublishDate, DateTimeOffset CloseDate, DateTimeOffset DateCreated, string ViewPermissions, int? Confirm)
+        {
+            this.Id = Id;
+            this.Name = Name;
+            this.Description = Description;
+            this.SheetIndex = SheetIndex;
+            this.FileType = FileType;
+            this.PublishDate = PublishDate;
+            this.CloseDate = CloseDate;
+            this.DateCreated = DateCreated;
+            this.ViewPermissions = ViewPermissions;
+            this.Confirm = Confirm;
+        }
     }
 }

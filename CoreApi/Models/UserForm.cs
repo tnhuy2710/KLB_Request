@@ -34,5 +34,19 @@ namespace CoreApi.Models
 
         public DateTimeOffset DateCreated { get; set; }
 
+        public UserForm(string FormId, string UserId, string InputValues, string CurrentStepId, DateTimeOffset? AvailableFrom, DateTimeOffset? ExpireIn, DateTimeOffset DateCreated)
+        {
+            this.FormId = FormId;
+            this.UserId = UserId;
+            this.InputValues = InputValues;
+            this.CurrentStepId = CurrentStepId;
+            this.AvailableFrom = AvailableFrom;
+            this.ExpireIn = ExpireIn;
+            this.DateCreated = DateCreated;
+        }
+        public UserForm()
+        {
+        }
+
     }
 }
