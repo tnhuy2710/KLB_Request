@@ -47,9 +47,10 @@ namespace CoreApi.Data.Repositories
         Task<UserFormLog> GetLastLogByUserFormAndStepAsync(long userFormId, string stepId); 
         Task<bool> UpdateLogsAsync();
 
-        Task<bool> Insert_Into(UserForm _userForm);
+        Task<bool> InsertInto(UserForm _userForm);
 
         Task<bool> Update_ExpireInAsync(string currentStepID);
+        Task<bool> Update(UserForm _userForm);
         Task<UserForm> GetFormStepDataAsync(string FormID);
     }
 
@@ -317,7 +318,7 @@ namespace CoreApi.Data.Repositories
             return false;
         }
 
-        public async Task<bool> Insert_Into(UserForm _userForm)
+        public async Task<bool> InsertInto(UserForm _userForm)
         {
             if (!String.IsNullOrEmpty(_userForm.FormId))
             {
@@ -330,6 +331,20 @@ namespace CoreApi.Data.Repositories
                 {
                     throw new Exception(e.Message);
                 }
+            }
+            return true;
+        }
+
+        public async Task<bool> Update(UserForm _userForm)
+        {                        
+            try
+            {
+                Db.Entry(_userForm).State = EntityState.Modified;
+                await Db.SaveChangesAsync();
+            }
+            catch
+            {
+                return false;
             }
             return true;
         }

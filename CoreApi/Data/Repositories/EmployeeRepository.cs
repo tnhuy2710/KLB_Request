@@ -31,6 +31,10 @@ namespace CoreApi.Data.Repositories
         Task<bool> UpdateEmployeeAvatarImageAsync(string empCode, string filename, string original, string size512, string size125);
 
         Task<string> GetUserID(string empCode);
+        Task<IList<Employee>> GetAllPosition();
+        Task<IList<Employee>> GetAllLevel1();
+        Task<IList<Employee>> GetAllLevel2();
+
     }
 
     public class EmployeeRepository : IEmployeeRepository
@@ -213,7 +217,7 @@ namespace CoreApi.Data.Repositories
 
         // private methods
 
-        private async Task<Employee> MapToEmployee(DataTable source)
+           private async Task<Employee> MapToEmployee(DataTable source)
         {
             return (await MapToEmployees(source))?.FirstOrDefault();
         }
@@ -276,6 +280,25 @@ namespace CoreApi.Data.Repositories
             return await (from uSER in _db.Users
                           where uSER.EmpCode.Equals(empCode)
                           select uSER.Id).FirstOrDefaultAsync();
+        }
+
+        public async Task<IList<Employee>> GetAllPosition()
+        {
+            var temp = await _db.ExecuteQueryAsync("PR_GET_CHUCDANH", null, MapToEmployees, CommandType.StoredProcedure);
+            return await _db.ExecuteQueryAsync("PR_GET_CHUCDANH", null, MapToEmployees, CommandType.StoredProcedure);
+        }
+
+        public async Task<IList<Employee>> GetAllLevel1()
+        {
+            var temp = await _db.ExecuteQueryAsync("PR_GET_LEVEL1", null, MapToEmployees, CommandType.StoredProcedure);
+            return await _db.ExecuteQueryAsync("PR_GET_LEVEL1", null, MapToEmployees, CommandType.StoredProcedure);                                    
+
+        }
+
+        public async Task<IList<Employee>> GetAllLevel2()
+        {
+            var temp = await _db.ExecuteQueryAsync("PR_GET_LEVEL2", null, MapToEmployees, CommandType.StoredProcedure);
+            return await _db.ExecuteQueryAsync("PR_GET_LEVEL2", null, MapToEmployees, CommandType.StoredProcedure);             
         }
     }
 }

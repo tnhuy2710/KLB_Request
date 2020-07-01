@@ -69,7 +69,7 @@ namespace CoreApi.Data.Repositories
         GrantPermissionResult IsGrantPermissionForView(FormStep step, Employee employeeDetails);
         Task<IList<Form>> GetAllGrantPermissionForViewAsync(Employee empDetails);
 
-        Task<bool> Insert_Into(FormStep _formStep);
+        Task<bool> InsertInto(FormStep _formStep);
 
         Task<bool> UpdateFormSteps(string ID, int cONFIRM);
     }
@@ -198,7 +198,7 @@ namespace CoreApi.Data.Repositories
                                              .FirstOrDefaultAsync() != null)
                         {
                             listItems.Add(_formStep);
-                        }
+                        }                        
                     }
                 }
             }
@@ -767,7 +767,7 @@ namespace CoreApi.Data.Repositories
             return null;
         }
 
-        public async Task<bool> Insert_Into(FormStep _formStep)
+        public async Task<bool> InsertInto(FormStep _formStep)
         {
             if (!String.IsNullOrEmpty(_formStep.Id))
             {
@@ -826,6 +826,28 @@ namespace CoreApi.Data.Repositories
         public Task<GrantPermissionResult> IsGrantPermissionForThisStepAsync(IList<FormStep> step, Employee employeeDetails)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<bool> DailyUpdateFormSteps(string ID, int cONFIRM)
+        {
+            FormStep _formStep = Db.FormSteps.Where(x => x.ExpireIn < DateTimeOffset.Now).FirstOrDefault();
+            return await Task.Run(async () =>
+            {   
+                
+                _formStep.Confirm = cONFIRM;
+                _formStep.DateUpdated = DateTime.Now;
+                var next_Step = _formStep.NextStepId;
+                try
+                {
+                    Db.Entry(_formStep).State = EntityState.Modified;
+                    await Db.SaveChangesAsync();
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
         }
     }
 }

@@ -276,7 +276,7 @@ namespace CoreApi.Data.Repositories
 
         private UserEmployeeDetails MapToUserEmployeeDetails(IDataRecord row)
         {
-            var index = 0;
+            //var index = 0;
             var entity               = new UserEmployeeDetails()
             {
                 Id                   = row.GetValueOrDefault<string>("Id"),
