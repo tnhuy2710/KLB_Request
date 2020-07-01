@@ -27,7 +27,6 @@
 
             $('#sEND_GEMAIL_IDEALLY').hide();
             $('#sEND_GEMAIL_REQUEST').show();
-            //$('#datetimepicker1').datetimepicker();
             $("#sEARCH").keyup(function () {
                 $("#rESULT").children("a").end().find(":not(:contains('" + $("#sEARCH").val() + "'))").each(function () {
                     $(this).hide();
@@ -38,27 +37,91 @@
                 });
             });
 
+            //Get Employees
             $.ajax({
                 type: "GET",
-                url: "@Url.Action("GetCurrentUserOrganizationAsync", "Home")",
+                url: "@Url.Action("GetAllEmployees")",
                 data: {},
                 traditional: true,
                 dataType: 'json',
                 success: function (data) {
-                    $("#Organization").val(data);
+                    $.each(data, function (index, value) {
+                        if (value["EmpCode"] != 'null') {
+                            $("#Employees").append(
+                                "<option value='" + value["EmpCode"] + " - " + value["FullName"] + "'></option>"
+                            );
+                        }
+                    });
                 }
             });
 
+            //Get Position
             $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllPosition")",
+                data: {},
+                traditional: true,
+                dataType: 'json',
+                success: function (data) {
+                    $.each(data, function (index, value) {
+                        if (value["PositionCode"] != 'null') {
+                            $("#Position").append(
+                                //"<option value='" + value["PositionCode"] + " - " + value["Title"] + "'></option>"
+                                "<option value='" + value["PositionCode"] + " - " + value["Title"] + "'></option>"
+                            );
+                        }
+                    });
+                }
+            });
+
+            //Get Level1
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllLevel1")",
+                data: {},
+                traditional: true,
+                dataType: 'json',
+                success: function (data) {
+                    $.each(data, function (index, value) {
+                        if (value["Level1"] != 'null') {
+                            $("#Level1").append(
+                                //"<option value='" + value["Level1Id"] + "-" + value["Level1Name"] + "'></option>"
+                                "<option value='" + value["Level1Id"] + " - " + value["Level1Name"] + "'></option>"
+                            );
+                        }
+                    });
+                }
+            });
+
+            //Get Level2
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetAllLevel2")",
+                data: {},
+                traditional: true,
+                dataType: 'json',
+                success: function (data) {
+                    $.each(data, function (index, value) {
+                        if (value["Level2"] != 'null') {
+                            $("#Level2").append(
+                                "<option value='" + value["Level2Id"] + " - " + value["Level2Name"] + "'></option>"
+                            );
+                        }
+                    });
+                }
+            });
+
+            //Get CurrentUser
+            @*$.ajax({
                 type: "GET",
                 url: "@Url.Action("GetCurrentUserAsync", "Home")",
                 data: {},
                 traditional: true,
                 dataType: 'json',
                 success: function (data) {
-                    $("#viewPermission").append("<p value='" + data["EmpCode"] + "'>" + data["FullName"] + " - " + data["Username"] + "</p>");
+                    $("#listPersons").append("<p value='" + data["EmpCode"] + "'>" + data["FullName"] + " - " + data["Username"] + "</p>");
                 }
-            });
+            });*@
 
             $("#date_End").change(function () {
                 if (new Date($("#date_End").val()) < new Date($("#date_Start").val())) {
@@ -68,12 +131,71 @@
                 }
             });
 
-            $("#add_Employee").click(function () {
-                var flag = 0;
-                if ($("#input_ID").length > 0) {
-                    //console.log($("#viewPermission").find("p").attr("value"));
+            $("#addPerson").click(function () {
+                var cOUNT = $("#listPersons").find("p").length;
+                if ($("#input_Position").val().length > 0) {
+                    if ($("#listPersons").find("p[value='" + $("#input_Position").val() + "']").length > 0) {
+                        $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
+                        $("#btn_ATTENTION").click();
+                    }
+                    else {
+                        $("#listPersons").append("<div id='person_" + cOUNT + "' style='display: flex'>"
+                            + "<p value='" + $("#input_Position").val() + " - Position" + "'>" + $("#input_Position").val() + "</p>"
+                            + "<a onclick='RemoveListPersons(person_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                            + "</div>");
+                    }
+                    $("#input_Position").val("");
+                }
+                else if ($("#input_Employee").val().length > 0) {
+                    if ($("#listPersons").find("p[value='" + $("#input_Employee").val() + "']").length > 0) {
+                        $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
+                        $("#btn_ATTENTION").click();
+                    }
+                    else {
+                        $("#listPersons").append("<div id='person_" + cOUNT + "' style='display: flex'>"
+                            + "<p value='" + $("#input_Employee").val() + " - Employee" + "'>" + $("#input_Employee").val() + "</p>"
+                            + "<a onclick='RemoveListPersons(person_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                            + "</div>");
+                    }
+                    $("#input_Employee").val("");
+                }
+                else if ($("#input_Level1").val().length > 0) {
+                    if ($("#listPersons").find("p[value='" + $("#input_Level1").val() + "']").length > 0) {
+                        $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
+                        $("#btn_ATTENTION").click();
+                    }
+                    else {
+                        $("#listPersons").append("<div id='person_" + cOUNT + "' style='display: flex'>"
+                            + "<p value='" + $("#input_Level1").val() + " - Level1" + "'>" + $("#input_Level1").val() + "</p>"
+                            + "<a onclick='RemoveListPersons(person_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                            + "</div>");
+                    }
+                    $("#input_Level1").val("");
+                }
+                else if ($("#input_Level2").val().length > 0) {
+                    if ($("#listPersons").find("p[value='" + $("#input_Level2").val() + "']").length > 0) {
+                        $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
+                        $("#btn_ATTENTION").click();
+                    }
+                    else {
+                        $("#listPersons").append("<div id='person_" + cOUNT + "' style='display: flex'>"
+                            + "<p value='" + $("#input_Level2").val() + " - Level2" + "'>" + $("#input_Level2").val() + "</p>"
+                            + "<a onclick='RemoveListPersons(person_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                            + "</div>");
+                    }
+                    $("#input_Level2").val("");
+                }
+                //console.log($("#viewPermission").find("p[value='" + $("#input_Position").val() + "']").length);
+                //console.log($("p[value='" + $("#input_Position").val() + "']"));
+                //else if ($("#input_Position").val().length > 0) {
+                //    $("#viewPermission").append("<div id='" + cOUNT + "' style='display: flex'>"
+                //        + "<p value='" + $("#input_Position").val() + "'>" + $("#input_Position").val() + "</p>"
+                //        + "<a onclick='removeViewPermission(" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                //        + "</div>");
+                //}
+                @*var flag = 0;
+                if ($("#input_ID").val().length > 0) {
                     $('#viewPermission').find("p").each(function () {
-                        //console.log($(this).attr("value"));
                         if ($("#input_ID").val() === $(this).attr("value")) {
                             $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
                             $("#btn_ATTENTION").click();
@@ -90,14 +212,78 @@
                                 traditional: true,
                                 dataType: 'json',
                                 success: function (data) {
-                                    $("#viewPermission").append("<div id='" + data["Username"] + "' style='display: flex'>"
-                                                                + "<p value='" + data["EmpCode"] + "'>" + data["FullName"] + " - " + data["Username"] + "</p>"
-                                                                + "<a onclick='rEMOVE_viewPermission(" + data["Username"] + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
-                                                                + "</div>");
+                                    if (data === null) {
+                                        $("#aTTENTION_CONTENT").text("Không tìm thấy mã nhân sự");
+                                        $("#btn_ATTENTION").click();
+                                        $("#" + id).val("");
+                                        return;
+                                    }
+                                    else {
+                                        $("#viewPermission").append("<div id='" + data["Username"] + "' style='display: flex'>"
+                                            + "<p value='" + data["EmpCode"] + "'>" + data["FullName"] + " - " + data["Username"] + "</p>"
+                                            + "<a onclick='rEMOVE_viewPermission(" + data["Username"] + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                                            + "</div>");
+                                    }
                             }
                         });
                     }
-                };
+                };*@
+            });
+
+            $("#addPerson_modal").click(function () {
+                var cOUNT = $("#listPersons_modal").find("p").length;
+                if ($("#input_Position_modal").val().length > 0) {
+                    if ($("#listPersons_modal").find("p[value='" + $("#input_Position_modal").val() + "']").length > 0) {
+                        $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
+                        $("#btn_ATTENTION").click();
+                    }
+                    else {
+                        $("#listPersons_modal").append("<div id='person_Modal_" + cOUNT + "' style='display: flex'>"
+                            + "<p value='" + $("#input_Position_modal").val() + " - Position" + "'>" + $("#input_Position_modal").val() + "</p>"
+                            + "<a onclick='RemoveListPersons(person_Modal_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                            + "</div>");
+                    }
+                    $("#input_Position_modal").val("");
+                }
+                else if ($("#input_Employee_modal").val().length > 0) {
+                    if ($("#listPersons_modal").find("p[value='" + $("#input_Employee_modal").val() + "']").length > 0) {
+                        $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
+                        $("#btn_ATTENTION").click();
+                    }
+                    else {
+                        $("#listPersons_modal").append("<div id='person_Modal_" + cOUNT + "' style='display: flex'>"
+                            + "<p value='" + $("#input_Employee_modal").val() + " - Employee" + "'>" + $("#input_Employee_modal").val() + "</p>"
+                            + "<a onclick='RemoveListPersons(person_Modal_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                            + "</div>");
+                    }
+                    $("#input_Employee_modal").val("");
+                }
+                else if ($("#input_Level1_modal").val().length > 0) {
+                    if ($("#listPersons_modal").find("p[value='" + $("#input_Level1_modal").val() + "']").length > 0) {
+                        $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
+                        $("#btn_ATTENTION").click();
+                    }
+                    else {
+                        $("#listPersons_modal").append("<div id='person_Modal_" + cOUNT + "' style='display: flex'>"
+                            + "<p value='" + $("#input_Level1_modal").val() + " - Level1" + "'>" + $("#input_Level1_modal").val() + "</p>"
+                            + "<a onclick='RemoveListPersons(person_Modal_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                            + "</div>");
+                    }
+                    $("#input_Level1_modal").val("");
+                }
+                else if ($("#input_Level2_modal").val().length > 0) {
+                    if ($("#listPersons_modal").find("p[value='" + $("#input_Level2_modal").val() + "']").length > 0) {
+                        $("#aTTENTION_CONTENT").text("Đã có thông tin người dùng");
+                        $("#btn_ATTENTION").click();
+                    }
+                    else {
+                        $("#listPersons_modal").append("<div id='person_Modal_" + cOUNT + "' style='display: flex'>"
+                            + "<p value='" + $("#input_Level2_modal").val() + " - Level2" + "'>" + $("#input_Level2_modal").val() + "</p>"
+                            + "<a onclick='RemoveListPersons(person_Modal_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                            + "</div>");
+                    }
+                    $("#input_Level2_modal").val("");
+                }
             });
 
             $('#joinPermission > input').each(function () {
@@ -106,8 +292,7 @@
                     url: "@Url.Action("GetCurrentUserByIDAsync", "Home")",
                     data: { id: $(this).val() },
                     traditional: true,
-                    //dataType: 'json',
-                    success: function (data) {
+                     success: function (data) {
                         $("#joinPermission").append("<p>" + data["FullName"] + " - " + data["Username"] + " - " + data["Title"] + "</p>");
                     }
                 });
@@ -143,17 +328,15 @@
 
             $("#sEND_GEMAIL_REQUEST").click(function () {
                 var flag = 1;
-                if ($("#form_Name").val().length === 10 || $("#dESCRIPTION").val().length === 0 ||
+                if ($("#form_Name").val().length === 0 || $("#dESCRIPTION").val().length === 0 ||
                     $("#date_Start").val().length === 0 || $("#date_End").val().length === 0 ||
                     $("#sHEET").val().length === 0 || $("#fileType").val().length === 0) {
 
                     $("#aTTENTION_CONTENT").text("Xin nhập đầy đủ thông tin");
-                    $("#btn_ATTENTION").click();
-                    flag = 0;
-                }
-                var file = $("#fileType").get(0).files[0];
-
-                if (flag === 1) {
+                    $("#btn_ATTENTION").click();                    
+                }                
+                else {
+                    //Save Uploaded File
                     var formData = new FormData();
                     formData.append(file.name, file);
                     $.ajax({
@@ -174,50 +357,58 @@
                             }
                         }
                     });
-                }
-                if (flag === 1) {
-                    var viewPermission = "";
-                    $('#viewPermission').find("p").each(function () {
-                        viewPermission = viewPermission + $(this).attr("value") + ";";
+
+                    var file = $("#fileType").get(0).files[0];
+                    var listPersons = "";
+                    $('#listPersons').find("p").each(function () {
+                        listPersons = listPersons + $(this).attr("value") + ";";
                     });
 
-                    var pERMISSION = [];
-                    $("#PermissionInfo > tbody > tr").each(function () {
-                        var iTEM = {};
-                        iTEM['nAME'] = $(this).find("td").eq(0).find("option:selected").val();
-                        iTEM['empCode'] = $(this).find("td").eq(1).find("input").val();
-                        iTEM['availableFrom'] = $(this).find("td").eq(3).find("input").val();
-                        iTEM['expireIn'] = $(this).find("td").eq(4).find("input").val();
-                        iTEM['isAllowSendEmail'] = $(this).find("td").eq(5).find("option:selected").val();
-                        pERMISSION.push(iTEM);
-                    });
-
-                    var postData = {
-                        iD: file.name,
-                        nAME: $("#form_Name").val(),
-                        dESCRIPTION: $("#dESCRIPTION").val(),
-                        publishDate: $("#date_Start").val(),
-                        closeDate: $("#date_End").val(),
-                        sheetIndex: $("#sHEET").val(),
-                        viewPermissions: viewPermission,
-                        pERMISSIONs: pERMISSION
+                    var _formTemp = {
+                        Id: file.name,
+                        Name: $("#form_Name").val(),
+                        Description: $("#dESCRIPTION").val(),
+                        SheetIndex: $("#sHEET").val(),
+                        PublishDate: $("#date_Start").val(),
+                        CloseDate: $("#date_End").val(),
+                        ViewPermissions: listPersons
                     };
 
-                    var jsonData = JSON.stringify(postData);
+                    var _formStepTemp = [];
+                    $("#PermissionInfo > tbody > tr").each(function () {
+                        var iTEM = {};
+                        iTEM['Name'] = $(this).find("td").eq(0).find("option:selected").val();
+                        iTEM['GroupIds'] = "";
+                        $(this).find("td").eq(1).find("p").each(function () {
+                            iTEM['GroupIds'] = iTEM['GroupIds'] + $(this).attr("value") + ";"
+                        });
+                        iTEM['AvailableFrom'] = $(this).find("td").eq(3).find("input").val();
+                        iTEM['ExpireIn'] = $(this).find("td").eq(4).find("input").val();
+                        iTEM['IsAllowSendEmail'] = $(this).find("td").eq(5).find("option:selected").val();
+                        iTEM['ViewPermissions'] = "";
+                        $(this).find("td").eq(6).find("p").each(function () {
+                            iTEM['ViewPermissions'] = iTEM['ViewPermissions'] + $(this).attr("value") + ";"
+                        });
+                        iTEM['Form'] = _formTemp;
+                        _formStepTemp.push(iTEM);
+                    });
+
+                    var _formStep = JSON.stringify(_formStepTemp);
 
                     $.ajax({
                         type: "POST",
                         url: "@Url.Action("SendRequestAsync")",
-                        data: jsonData,
+                        data: _formStep,
                         contentType: "application/json; charset=utf-8",
                         dataType: "json",
                         success: function (data) {
                             $('#info-modal').showModal({
                                 title: 'Thông báo',
                                 message: 'Đã lưu thành công dữ liệu của bạn.',
+                            },
+                            userInput => {
+                                location.reload();
                             });
-
-                            location.reload();
                         },
                         statusCode: {
                             400: function (resp) {
@@ -250,44 +441,47 @@
                     });
             });
 
-            $("#AddPer").click(function () {
+            $("#AddProcesses").click(function () {
                 var cOUNT = $("#PermissionInfo > tbody").find('tr').length + 1;
                 $("#PermissionInfo").append(
-                    "<tr id='Per" + cOUNT + "'>"
+                    "<tr id='processes_" + cOUNT + "'>"
                         + "<td>"
                         +   "<select class='custom-select mr-sm-2'>"
                         +       "<option selected value = 'Edit' > Đánh giá</option>"
+                        +       "<option value='Opinion'>Ý kiến</option>"
                         +       "<option value='Confirm'>Xét duyệt</option>"
-                        +       "<option value='View'>Kết thúc</option>"
                         +   "</select ></td>"
                         + "<td>"
-                        +   "<input type='text' class='form-control' id='per_'" + cOUNT +" onchange='GetCurrentUserByID(this.id)' style='max-width: 80%; margin: auto'/></td>"
+                        +   "<div type='button' id='list_" + cOUNT + "' onclick='Goto_addPermission_Modal(this.id)'>"
+                        +       "<a>Thêm</a>"
+                        +   "</div> </td>"
                         + "<td>" + cOUNT + "</td>"
-                        + "<td><input type='date' class='form-control' style='max-width: 85%; margin: auto' /></td>"
-                        + "<td><input type='date' class='form-control' style='max-width: 85%; margin: auto' /></td>"
+                        + "<td> <input type='date' class='form-control' style='max-width: 85%; margin: auto' /> </td>"
+                        + "<td> <input type='date' class='form-control' style='max-width: 85%; margin: auto' /> </td>"
                         + "<td>"
                         +   "<select class='custom-select mr-sm-2'>"
                         +       "<option selected value='false'>Off</option>"
                         +       "<option value='true'>On</option>"
-                        +   "</select ></td>"
-                        + "<td><i class='fas fa-trash-alt' onclick='RemovePer(Per" + cOUNT + ")'></i></td>"
+                        +   "</select> </td>"
+                        + "<td>"
+                        +   "<div type='button' id='listViews_" + cOUNT + "' onclick='Goto_addPermission_Modal(this.id)'>"
+                        +       "<a>Thêm</a>"
+                        +   "</div> </td>"
+                        + "<td> <i class='fas fa-trash-alt' onclick='RemoveProcesses(processes_" + cOUNT + ")'></i> </td>"
                     + "</tr>");
             });
-
-
         });
 
         function rEMOVE_ROW(value) {
-            console.log(value);
            $('#' + value).remove();
         };
 
-        function RemovePer(value) {
+        function RemoveProcesses(value) {
             value.remove();
         };
 
-        function rEMOVE_viewPermission(value) {
-            $('#' + value).remove();
+        function RemoveListPersons(value) {
+            value.remove();
         };
 
         function editForm(id) {
@@ -421,7 +615,6 @@
 
         function GetCurrentUserByID(id) {
             var iD = $("#" + id).val();
-            console.log(iD);
             if (iD.length > 0) {
                 $.ajax({
                     type: "GET",
@@ -443,6 +636,33 @@
                 });
             }
         };
+
+        function Goto_addPermission_Modal(id) {
+            $("#iD_modal").val(id);
+            $("#btn_addPermission").click();
+
+            $("#" + id).find("p").each(function () {
+                var cOUNT = $("#listPersons_modal").find("p").length;
+                if ($("#listPersons_modal").find("p[value='" + $(this).attr("value") + "']").length == 0) {
+                    $("#listPersons_modal").append("<div id='person_Modal_" + cOUNT + "' style='display: flex'>"
+                        + "<p value='" + $(this).attr("value") + "'>" + $(this).text() + "</p>"
+                        + "<a onclick='RemoveListPersons(person_Modal_" + cOUNT + ")' style='margin-left: 10px'><i class='fas fa-trash-alt'></i></a>"
+                        + "</div>");
+                }
+            })
+        };
+
+        function SaveListPersons() {
+            $("#listPersons_modal > div").each(function () {
+                if ($("#" + $("#iD_modal").val()).find("p[value='" + $(this).find("p").attr("value") + "']").length == 0) {
+                    $("#" + $("#iD_modal").val()).append($(this).find("p"));
+                    $("#" + $("#iD_modal").val()).find("a").remove();
+                }
+                $(this).remove();
+            });
+            $("#btn_Close_Modal").click();
+        };
+
     </script>
 }
 
@@ -461,7 +681,7 @@
 
 <div>
     @*<button class="btn btn-primary" id="chct"></button>*@
-    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#GEMAIL_Permission_Form">
         <i class="fa fa-file"></i>
         Tạo mẫu mới
     </button>
@@ -723,25 +943,45 @@
                             </div>
                         </div>
                         <div style="display: flex; margin: 10px">
-                            <div class="col-md-2">
-                                <label style="margin: 4px">Danh sách theo dõi:</label>
+                            <div class="col-md-3">
+                                <input list="Employees" class="form-control" id="input_Employee" placeholder="Mã/Tên nhân sự">
+                                <datalist id="Employees">
+                                </datalist>
                             </div>
-                            <div class="col-md-6">
-                                <input type="text" class="form-control" id="input_ID" placeholder="Nhập mã nhân sự" aria-label="Username" aria-describedby="basic-addon1">
+                            <div class="col-md-3">
+                                <input type="text" list="Position" class="form-control" id="input_Position" placeholder="Mã/Tên chức danh">
+                                <datalist id="Position">
+                                </datalist>
+                            </div>
+                            <div class="col-md-3">
+                                <input list="Level1" class="form-control" id="input_Level1" placeholder="Mã/Tên Level1">
+                                <datalist id="Level1">
+                                </datalist>
+                            </div>
+                            <div class="col-md-2">
+                                <input list="Level2" class="form-control" id="input_Level2" placeholder="Mã/Tên Level2">
+                                <datalist id="Level2">
+                                </datalist>
                             </div>
                             <div class="col-md-1">
-                                <button type="button" class="btn-add" style="margin-top: 4px" id="add_Employee">
+                                <button type="button" class="btn-add" style="margin-top: 4px" id="addPerson">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                         </div>
                         <div style="display: flex; margin: 10px">
                             <div class="col-md-2">
-
+                                <label style="margin: 4px">Danh sách theo dõi:</label>
                             </div>
-                            <div class="col-md-8" id="viewPermission">
+                            <div class="col-md-8" id="listPersons" style="padding-top: 6px">
                             </div>
                         </div>
+                        @*<div style="display: flex; margin: 10px">
+                                <div class="col-md-2">
+
+                                </div>
+
+                            </div>*@
 
                         <div style="display: flex; margin: 10px">
                             <div class="col-md-2">
@@ -749,48 +989,58 @@
                             </div>
                             <div class="col-md-10" id="" style="margin: 4px">
                                 <div style="text-align: end; width: 50%">
-                                    <button type="button" class="btn-add" style="margin-top: 4px" id="AddPer">
+                                    <button type="button" class="btn-add" style="margin-top: 4px" id="AddProcesses">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
-                                <div id="table-scroll" class="table-scroll" style="margin: 10px auto;">
-                                    <div class="table-wrap">
-                                        <table class="table" id="PermissionInfo">
-                                            <thead class="thead-dark">
-                                                <tr>
-                                                    <th scope="col">Mô tả</th>
-                                                    <th scope="col">Tham gia</th>
-                                                    <th scope="col">Bước</th>
-                                                    <th scope="col">Bắt đầu</th>
-                                                    <th scope="col">Kết thúc</th>
-                                                    <th scope="col">Send Mail</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>
-                                                        <select class="custom-select mr-sm-2">
-                                                            <option selected value="Edit">Đánh giá</option>
-                                                            <option value="Confirm">Xét duyệt</option>
-                                                            <option value="View">Kết thúc</option>
-                                                        </select>
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control" id="per_1" onchange="GetCurrentUserByID(this.id)" style="max-width: 80%; margin: auto" vale="" />
-                                                    </td>
-                                                    <td>1</td>
-                                                    <td><input type="date" class="form-control" style="max-width: 85%; margin: auto" /></td>
-                                                    <td><input type="date" class="form-control" style="max-width: 85%; margin: auto" /></td>
-                                                    <td>
-                                                        <select class="custom-select mr-sm-2">
-                                                            <option selected value="false">Off</option>
-                                                            <option value="true">On</option>
-                                                        </select>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; margin: 10px">
+                            <div id="table-scroll" class="table-scroll" style="margin: 10px auto;">
+                                <div class="table-wrap">
+                                    <table class="table" id="PermissionInfo">
+                                        <thead class="thead-dark">
+                                            <tr>
+                                                <th scope="col">Mô tả</th>
+                                                <th scope="col">Tham gia</th>
+                                                <th scope="col">Bước</th>
+                                                <th scope="col">Bắt đầu</th>
+                                                <th scope="col">Kết thúc</th>
+                                                <th scope="col">Send Mail</th>
+                                                <th scope="col">Theo dõi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <select class="custom-select mr-sm-2">
+                                                        <option selected value="Edit">Điều chỉnh</option>
+                                                        <option value="Opinion">Ý kiến</option>
+                                                        <option value="Confirm">Xét duyệt</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div type="button" id="list_1" onclick="Goto_addPermission_Modal(this.id)">
+                                                        <a>Thêm</a>
+                                                    </div>                                                    
+                                                </td>
+                                                <td>1</td>
+                                                <td><input type="date" class="form-control" style="max-width: 85%; margin: auto" /></td>
+                                                <td><input type="date" class="form-control" style="max-width: 85%; margin: auto" /></td>
+                                                <td>
+                                                    <select class="custom-select mr-sm-2">
+                                                        <option selected value="false">Off</option>
+                                                        <option value="true">On</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div type="button" id="listViews_1" onclick="Goto_addPermission_Modal(this.id)">
+                                                        <a>Thêm</a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -799,11 +1049,12 @@
 
                 <div class="modal-footer">
                     <div class="col-md-5" style="margin-right: 8%">
-                        <button type="submit" class="btn btn-primary" id="sEND_GEMAIL_REQUEST" value="save" style="width: 80%">Gửi đề xuất</button>
+                        <button type="submit" class="btn btn-primary" id="sEND_GEMAIL_REQUEST" value="save" style="width: 80%">Gửi biểu mẫu</button>
                     </div>
                     <div class="col-md-5">
                         <button type="button" class="btn btn-secondary" style="width: 80%" data-dismiss="modal">Hủy bỏ</button>
                     </div>
+                    <button type="button" data-toggle="modal" data-target="#addPermission" id="btn_addPermission" hidden></button>
                 </div>
                 @*</form>*@
             </div>
@@ -824,6 +1075,63 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="addPermission" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="width: 80%; margin: auto">
+                <div class="modal-header" style="background-color: #00717c; color: white">
+                    <h5 class="modal-title" id="exampleModalLongTitle" style="align-self:center;">Phân quyền nhân viên</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <input type="text" id="iD_modal" hidden>
+
+                <div class="modal-body">
+                    <div style="display: flex; margin: 10px">
+                        <div class="col-md-3">
+                            <input list="Employees" class="form-control" id="input_Employee_modal" placeholder="Mã/Tên nhân sự">
+                            <datalist id="Employees">
+                            </datalist>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" list="Position" class="form-control" id="input_Position_modal" placeholder="Mã/Tên chức danh">
+                            <datalist id="Position">
+                            </datalist>
+                        </div>
+                        <div class="col-md-3">
+                            <input list="Level1" class="form-control" id="input_Level1_modal" placeholder="Mã/Tên Level1">
+                            <datalist id="Level1">
+                            </datalist>
+                        </div>
+                        <div class="col-md-2">
+                            <input list="Level2" class="form-control" id="input_Level2_modal" placeholder="Mã/Tên Level2">
+                            <datalist id="Level2">
+                            </datalist>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn-add" style="margin-top: 4px" id="addPerson_modal">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display: flex; margin: 10px">
+                        <div class="col-md-2">
+                            <label style="margin: 4px">Danh sách:</label>
+                        </div>
+                        <div class="col-md-8" id="listPersons_modal" style="padding-top: 6px">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary" onclick="SaveListPersons()">Lưu</button>
+                    <button type="button" class="btn btn-secondary" id="btn_Close_Modal" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -856,6 +1164,11 @@
         @if (Model.ConfirmForms?.Count > 0)
         {<span>@Model.ConfirmForms.Count</span>}
     </a>
+    <a class="item" data-tab="opinion">        
+        <i class="fa fa-pencil-square-o icon"></i> Ý kiến
+        @if (Model.OpinionForms?.Count > 0)
+        {<span>@Model.OpinionForms.Count</span>}
+    </a>
     <a class="item" data-tab="view">
         <i class="eye icon"></i> Xem
         @if (Model.ViewForms?.Count > 0)
@@ -873,7 +1186,7 @@
                 <div class="item">
                     <div class="right floated content">
                         @*<a href="#" id="@form.Id" class="ui button blue" onclick="editForm(this.id)" data-toggle="modal" data-target=@form.FormName>Thực hiện</a>*@
-                        <a href="@Url.Action("About", "Home", new { formId = form.Id })" class="ui button">Xem</a>
+                        <a href="@Url.Action("About", "Home", new { formId = form.Id })" class="ui button">Thực hiện</a>
                     </div>
                     <div class="content">
                         <div class="form-name">@form.Name</div>
@@ -924,7 +1237,7 @@
                 {
                     <div class="item">
                         <div class="right floated content">
-                            <a href="@Url.Action("Contact", "Home", new { formId = form.Id, userId = "52839da4-af28-42ad-a633-a8aac23a0b89" })" class="ui button main">Xét duyệt</a>
+                            <a href="@Url.Action("Contact", "Home", new { formId = form.Id })" class="ui button main">Xét duyệt</a>
                         </div>
                         <div class="content">
                             <div class="form-name">@form.Name</div>
@@ -937,6 +1250,30 @@
         else
         {
             <p style="padding: 20px 0;">Không có biểu mẫu nào cần <b>Xét Duyệt</b> vào lúc này.</p>
+        }
+    </div>
+</div>
+
+<div class="ui tab segment" data-tab="opinion">
+    <div class="ui relaxed divided list list-form">
+        @if (Model.OpinionForms?.Count > 0)
+        {
+            foreach (var form in Model.OpinionForms)
+            {
+                <div class="item">
+                    <div class="right floated content">
+                        <a href="@Url.Action("Excel", "Home", new { formId = form.Id})" class="ui button">Thực hiện</a>
+                    </div>
+                    <div class="content">
+                        <div class="form-name">@form.Name</div>
+                        <div class="description">@form.Description</div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <p style="padding: 20px 0;">Không có biểu mẫu nào để <b>Thực hiện</b> vào lúc này.</p>
         }
     </div>
 </div>

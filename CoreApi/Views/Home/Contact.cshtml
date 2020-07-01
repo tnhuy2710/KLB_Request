@@ -103,8 +103,8 @@
             @if (Model.IsAllowEditable)
             {
                 <div class="buttons_layout">                    
-                    <button class="ui button main submit_form" id="accept-form" value="true">Duyệt</button>
-                    <button class="ui button red submit_form" id="decline-form" value="true">Từ chối</button>
+                    <button class="ui button main submit_form" id="accept-form">Duyệt</button>
+                    <button class="ui button red submit_form" id="decline-form" >Từ chối</button>
                 </div>
             }
         </div>
@@ -354,6 +354,7 @@
 
             // Submit form
             $("#accept-form").click(function () {
+                $("#accept-form").val("true");
                     $('#confirm-modal').showModal({
                         title: 'Thông báo',
                         message: 'Bạn có chắc chắn <b>Duyệt biểu mẫu</b> hay không?'
@@ -361,6 +362,7 @@
             });
 
             $("#decline-form").click(function () {
+                $("#decline-form").val("true");
                 $('#confirm-modal').showModal({
                     title: 'Thông báo',
                     message: 'Bạn có chắc chắn <b>Từ chối biểu mẫu</b> hay không?'
@@ -404,7 +406,7 @@
                                 title: 'Thông báo',
                                 message: msg.Data,
                             }, userInput => {
-                                location.reload();
+                                location.assign("@Url.Action("Index")");
                             });
 
                         },
@@ -435,7 +437,7 @@
                                 title: 'Thông báo',
                                 message: msg.Data,
                             }, userInput => {
-                                location.reload();
+                                location.replace("@Url.Action("Index")");
                             });
 
                         },
@@ -451,12 +453,6 @@
                         }
                     }).always(function () {
                         $("#form-content").hideDimmer();
-                        $.ajax({
-                            type: 'GET',
-                            url: @Url.Action("Index"),
-                            datatype: "html",
-                            success: function () {}
-                        });
                     });
                 }
             });

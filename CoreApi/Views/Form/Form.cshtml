@@ -449,21 +449,21 @@
                 }).modal('show');
             });
 
-            @*// Submit form confirm
+            // Submit form confirm
             $("#accept-submit").click(function () {
 
-                $('#choose-user').modal('hide');
+                //$('#choose-user').modal('hide');
 
                 var userChoose = $("#userChoosen").val();
 
-                if (!userChoose) {
-                    $("#info-modal").showModal({
-                        title: "Lỗi",
-                        message: "Vui lòng chọn tên người sẽ thực hiện bước tiếp theo"
-                    });
+                //if (!userChoose) {
+                //    $("#info-modal").showModal({
+                //        title: "Lỗi",
+                //        message: "Vui lòng chọn tên người sẽ thực hiện bước tiếp theo"
+                //    });
 
-                    return 0;
-                }
+                //    return 0;
+                //}
 
                 var listInputs = [];
 
@@ -510,6 +510,7 @@
                 $("#form-content").showDimmer();
 
                 var postData = { EmpCodeNextStep: userChoose, Cells: listInputs };
+                console.log(postData);
                 var jsonData = JSON.stringify(postData);
 
                 $.ajax({
@@ -541,9 +542,9 @@
                 }).always(function() {
                     $("#form-content").hideDimmer();
                 });
-            });*@
+            });
 
-            $("#accept-submit").click(function () {
+            @*$("#accept-submit").click(function () {
                 var listInputs = [];
 
                 // Get all field input from form                
@@ -577,7 +578,7 @@
                 }).always(function() {
                     $("#form-content").hideDimmer();
                 });
-            });
+            });*@
         });
 
         // Init Input Format

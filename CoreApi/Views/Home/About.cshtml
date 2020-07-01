@@ -103,17 +103,17 @@
             @if (Model.IsAllowEditable)
             {
                 <div class="buttons_layout">
-                    <button class="ui button main submit_form" id="submit-form">Gửi đánh giá</button>
+                    <button class="ui button main submit_form" id="submit-form">Gửi biểu mẫu</button>
                     @*<button class="ui button submit_form" id="save-form">Lưu nháp</button>*@
                 </div>
             }
         </div>
     }
 
-    <div id="comment">        
+    @*<div id="comment">        
         <input type="text" class="form-control" id="input-comment" />        
         <a class="ui button main submit_form" id="submit-comment">Gửi bình luận</a>
-    </div>
+    </div>*@
 
     <!-- Model -->
     <div id="info-modal" class="ui tiny test modal">
@@ -542,7 +542,7 @@
 
                 $.ajax({
                     type: "POST",
-                    url: "@Url.Action("SubmitForm")",
+                    url: "@Url.Action("RequestForm")",
                     data: jsonData,
                     contentType: "application/json; charset=utf-8",
                     dataType: "json",
@@ -551,7 +551,7 @@
                             title: 'Thông báo',
                             message: msg.Data,
                         }, userInput => {
-                            location.reload();
+                            location.replace("@Url.Action("Index")");
                         });
 
                     },
