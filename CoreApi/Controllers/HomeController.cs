@@ -115,6 +115,11 @@ namespace CoreApi.Controllers
                             vm.ConfirmForms.Add(item);
                             break;
 
+                        case FormStepActionType.Opinion:
+                            // Check UserForm
+                            vm.OpinionForms.Add(item);
+                            break;
+
                         //View form
                         case FormStepActionType.View:
                             // Check UserForm
@@ -239,7 +244,7 @@ namespace CoreApi.Controllers
 
             //                // Set action
             //                item.ActionType = userForm.CurrentStep.Claims.MakeLowerCase();
-
+                
             //                var expireTime = userForm.CurrentStep.ExpireIn;
 
             //                if (userForm.ExpireIn.HasValue) expireTime = userForm.ExpireIn.Value;
@@ -393,25 +398,43 @@ namespace CoreApi.Controllers
                 }
 
                 var steps = await _formStepRepository.GetFromStepsByFormIdAsync(formId);
-
                 // Check permission for editable                
 
                 // Passed
                 var folderDataPath = Path.Combine(_environment.ContentRootPath, "MyFolder");
                 var fileFormPath = Path.Combine(folderDataPath, $"{formId}.{form.FileType}");
 
+                //var temp = steps.Where(x => x.Index.Equals(userForm.CurrentStep.Index)).FirstOrDefault().Confirm;
                 if (System.IO.File.Exists(fileFormPath))
                 {
-                    vm.IsAllowEditable = true;
-                    if (userForm.User == null)
+                    vm.IsAllowEditable = false;
+                    //if (userForm.User == null
+                    //   || steps.Where(x => x.Index.Equals(userForm.CurrentStep.Index)).FirstOrDefault().Confirm == -1
+                    //   || form.Confirm != -1)
+
+                    //Tạm thời
+                    if (steps.Where(x => x.Index.Equals(userForm.CurrentStep.Index)).FirstOrDefault().Claims.Equals(FormStepActionType.Opinion.ToString()))
                     {
-                        vm.IsAllowEditable = false;
+                        vm.IsAllowEditable = true;
                     }                    
 
                     var htmlForm = await ProcessExcelToHtmlAsync(fileFormPath, formId, form.SheetIndex, userForm, GetCurrentUserEmpCode(), vm.IsAllowEditable);
 
                     vm.Steps = steps;
                     vm.CurrentStepIndex = userForm.CurrentStep.Index;
+                    vm.Confirm = userForm.CurrentStep.Confirm;
+                    if(userForm.CurrentStep.Confirm == -1)
+                    {
+                        vm.Temp = "Đang trong quá trình kiểm duyệt";
+                    }
+                    else if (userForm.CurrentStep.Confirm == 0)
+                    {
+                        vm.Temp = "Biểu mẫu bị từ chối";
+                    }
+                    if (userForm.CurrentStep.Confirm == 1)
+                    {
+                        vm.Temp = "Biểu mẫu đã được duyệt";
+                    }
                     vm.FormHtmlContent = htmlForm;
                     vm.Name = form.Name;
                     vm.Description = form.Description;
@@ -428,10 +451,72 @@ namespace CoreApi.Controllers
             return View(vm);
         }
 
+        [HttpGet("{formId}/confirm")]
+        public async Task<IActionResult> Contact(string formId)
+        {
+            var vm = new FormViewModel()
+            {
+                FormId = formId
+            };
+
+            var form = await _formRepository.FindByIdAsync(formId);
+            if (form != null)
+            {
+                var userForm = await _userFormRepository.GetFormDataAsync(formId, GetCurrentUserId());
+                var steps = await _formStepRepository.GetFromStepsByFormIdAsync(formId);
+                var confirmStep = steps?.FirstOrDefault(x => x.Claims.Equals(FormStepActionType.Confirm.ToString()) && x.Confirm == -1);
+
+                // Check permission for editable
+                var result = await _formStepRepository.IsGrantPermissionForThisStepAsync(confirmStep, GetCurrentUserEmpCode(), userForm);
+
+                //// Check form view permission
+                //if (result != null && !result.IsGrant)
+                //{
+                //    result.IsGrant = _formRepository.IsGrantPermissionForView(form, result.EmployeeDetails);
+                //}
+                result.IsGrant = true;
+
+                if (result != null && result.IsGrant)
+                {
+                    // Passed
+                    var folderDataPath = Path.Combine(_environment.ContentRootPath, "MyFolder");
+                    var fileFormPath = Path.Combine(folderDataPath, $"{formId}.{form.FileType}");
+
+                    if (System.IO.File.Exists(fileFormPath))
+                    {
+                        //vm.IsAllowEditable = result.IsAllow;
+                        vm.IsAllowEditable = true;
+
+                        var htmlForm = await ProcessExcelToHtmlAsync(fileFormPath, formId, form.SheetIndex, result.UserForm, GetCurrentUserEmpCode(), vm.IsAllowEditable);
+
+                        vm.Steps = steps;
+                        //vm.CurrentStepIndex = result.CurrentStep != null ? steps.IndexOf(result.CurrentStep) + 1 : 1;
+                        vm.CurrentStepIndex = confirmStep.Index;
+                        vm.FormHtmlContent = htmlForm;
+                        vm.Name = form.Name;
+                        vm.Description = form.Description;
+                        vm.StepsDetails = new List<FormStepDetailsViewModel>();
+
+                        vm.StepsDetails = await BuildMilestoneTimeline(userForm, steps, vm.CurrentStepIndex);
+
+                        return View(vm);
+                    }
+                    else
+                    {
+                        //_log.LogError("Error cant not found Form file in UserData folder.");
+                    }
+                }
+            }
+
+            ModelState.AddModelError("form", "Lỗi không tìm thấy biểu mẫu, vui lòng liên hệ bộ phận hỗ trợ.");
+            vm.Name = "Có lỗi xảy ra";
+            return View(vm);
+        }
+
         [HttpPost("{formId}")]
         public async Task<DataResponse> SubmitForm(string formId, [FromBody] List<Thing> tHING)
-        {       
-            if(tHING.Count > 0)
+        {
+            if (tHING.Count > 0)
             {
                 Excel excel = new Excel(formId, (await _formRepository.FindFormByID(formId)).SheetIndex);
                 foreach (var item in tHING)
@@ -450,37 +535,186 @@ namespace CoreApi.Controllers
                 excel.Close();
             }            
 
-            var currentStep = await _userFormRepository.GetFormStepDataAsync(formId);            
+            var currentStep = await _userFormRepository.GetFormStepDataAsync(formId);
+            currentStep.UserId = await _employeeRepository.GetUserID(GetCurrentUserEmpCode());
+            if (!await _userFormRepository.Update(currentStep))
+            {
+                return BadRequest($"<b>Lỗi Update UserForm table</b>");
+            }
 
             if (!await _formStepRepository.UpdateFormSteps(currentStep.CurrentStepId, 1))
             {                
                 return BadRequest($"<b>Lỗi Update FormSteps table</b>");
-            }
+            }            
 
-            if (currentStep.CurrentStep.Claims == FormStepActionType.View.ToString())
+            if (String.IsNullOrEmpty(currentStep.CurrentStep.NextStepId))
             {
-                if (!(await _formRepository.UpdateFormAsync(formId, 1)))
+                if (!await _formRepository.UpdateFormAsync(formId, 1))
                 {                    
                     return BadRequest($"<b>Lỗi Update Forms table</b>");
                 }
-            }            
+            }
             else
             {
                 var nextStep = (await _formStepRepository.GetFromStepsByFormIdAsync(formId))
                                 .Where(x => x.Id.Equals(currentStep.CurrentStep.NextStepId))
-                                .FirstOrDefault();
-                //var temp = nextStep.Where()
-                UserForm userForm = new UserForm();
-                userForm.FormId = nextStep.FormId;
-                userForm.UserId = await _employeeRepository.GetUserID(nextStep.GroupIds);
-                userForm.CurrentStepId = nextStep.Id;
-                userForm.AvailableFrom = nextStep.AvailableFrom;
-                userForm.ExpireIn = nextStep.ExpireIn;
-                userForm.DateCreated = DateTime.Now;
-                if (!(await _userFormRepository.Insert_Into(userForm)))
+                                .FirstOrDefault();                
+                if (!await _userFormRepository.InsertInto(new UserForm(nextStep.FormId,
+                                                                        await _employeeRepository.GetUserID(GetCurrentUserEmpCode()),
+                                                                        null,
+                                                                        nextStep.Id,
+                                                                        nextStep.AvailableFrom,
+                                                                        nextStep.ExpireIn,
+                                                                        DateTime.Now)))
                 {                    
                     return BadRequest($"<b>Lỗi Insert UserForms table</b>");
                 }
+            }
+
+            return Success($"Biểu mẫu của bạn đã được gửi <b>thành công</b>");
+        }
+
+        [HttpPost("{formId}")]
+        public async Task<DataResponse> DeclineForm(string formId, [FromBody] List<Thing> tHING)
+        {
+            if (tHING.Count > 0)
+            {
+                Excel excel = new Excel(formId, (await _formRepository.FindFormByID(formId)).SheetIndex);
+                foreach (var item in tHING)
+                {
+                    if (!String.IsNullOrEmpty(item.Value))
+                    {
+                        var aDDRESS = item.Address.Split('-');
+                        var row = int.Parse(aDDRESS[0]);
+                        var column = int.Parse(aDDRESS[1]);
+                        if (!await excel.WriteToCell(row, column, item.Value))
+                        {
+                            return BadRequest($"<b>Lỗi import Excel</b>");
+                        }
+                    }
+                }
+                excel.Close();
+            }
+
+            var current_Step = await _userFormRepository.GetFormStepDataAsync(formId);
+            current_Step.UserId = await _employeeRepository.GetUserID(GetCurrentUserEmpCode());
+            if (!await _userFormRepository.Update(current_Step))
+            {
+                return BadRequest($"<b>Lỗi Update UserForm table</b>");
+            }
+
+            if (!await _formStepRepository.UpdateFormSteps(current_Step.CurrentStepId, 0))
+            {
+                return BadRequest($"<b>Lỗi Update FormSteps table</b>");
+            }
+
+            if (!(await _formRepository.UpdateFormAsync(formId, 0)))
+            {
+                return BadRequest($"<b>Lỗi Update Forms table</b>");
+            }
+
+            return Success($"Biểu mẫu của bạn đã được gửi <b>thành công</b>");
+        }
+
+        [HttpPost("{formId}")]
+        public async Task<DataResponse> RequestForm(string formId, [FromBody] List<Thing> tHING)
+        {
+            var _form = await _formRepository.FindFormByID(formId);            
+            _form.Id = formId + "_" + _formRepository.Count_ID_Count(formId);// infoPermission[0].Remove(infoPermission[0].IndexOf("."));                                    
+            if (!await _formRepository.InsertInto(_form))
+            {
+                return BadRequest($"<b>Lỗi Insert Form table</b>");
+            }
+
+            var _formStep = await _formStepRepository.GetFromStepsByFormIdAsync(formId);
+            for (int i = 0; i < _formStep.Count; i++)
+            {
+                _formStep[i].Id = _form.Id + "_" + (i + 1).ToString();
+                _formStep[i].FormId = _form.Id;
+                if (i == 0)
+                {
+                    _formStep[i].PrevStepId = null;
+                    _formStep[i].NextStepId = _form.Id + "_" + (i + 2).ToString();
+                    _formStep[i].Confirm = 1;                    
+                }
+                else if (i == _formStep.Count - 1)
+                {
+                    _formStep[i].PrevStepId = _form.Id + "_" + (i).ToString();
+                    _formStep[i].NextStepId = null;
+                }
+                else
+                {
+                    _formStep[i].PrevStepId = _form.Id + "_" + (i).ToString();
+                    _formStep[i].NextStepId = _form.Id + "_" + (i + 2).ToString();
+                }
+                if (!await _formStepRepository.InsertInto(_formStep[i]))
+                {
+                    return BadRequest($"<b>Lỗi Insert Form table</b>");
+                }
+            }
+
+            //UserForm userForm = new UserForm();
+            //userForm.FormId = _form.Id;
+            //userForm.UserId = await _employeeRepository.GetUserID(GetCurrentUserEmpCode());
+            //userForm.CurrentStepId = _formStep[0].Id;
+            //userForm.AvailableFrom = _formStep[0].AvailableFrom;
+            //userForm.DateCreated = DateTime.Now;
+            //userForm.ExpireIn = _formStep[0].ExpireIn;
+            //if (!(await _userFormRepository.InsertInto(userForm)))
+            //{
+            //    return BadRequest($"<b>Lỗi Insert UserForms table</b>");
+            //}
+            if (!(await _userFormRepository.InsertInto(new UserForm(_form.Id,
+                                                                            await _employeeRepository.GetUserID(GetCurrentUserEmpCode()),
+                                                                            null,
+                                                                            _formStep[0].Id,
+                                                                            _formStep[0].AvailableFrom,
+                                                                            _formStep[0].ExpireIn,
+                                                                            DateTime.Now))))
+            {
+                return BadRequest($"<b>Lỗi Insert UserForms table</b>");
+            }
+
+            if (!(await _userFormRepository.InsertInto(new UserForm(_form.Id,
+                                                                    await _employeeRepository.GetUserID(GetCurrentUserEmpCode()),
+                                                                    "",
+                                                                    _formStep[1].Id,
+                                                                    _formStep[1].AvailableFrom,
+                                                                    _formStep[1].ExpireIn,
+                                                                    DateTime.Now))))
+            {
+                return BadRequest($"<b>Lỗi Insert UserForms table</b>");
+            }
+
+            var folderDataPath = Path.Combine(_environment.ContentRootPath, "MyFolder");
+            if (!Directory.Exists(folderDataPath)) Directory.CreateDirectory(folderDataPath);
+            using (var fileStream = new FileStream(Path.Combine(folderDataPath, $"{formId}.xlsx"), FileMode.Open))
+            {
+                using (var DestinationStream = new FileStream(Path.Combine(folderDataPath, $"{_form.Id}.xlsx"), FileMode.Create))
+                {                    
+                    await fileStream.CopyToAsync(DestinationStream);
+                    fileStream.Close();
+                    DestinationStream.Close();
+                }
+            }
+
+            if (tHING.Count > 0)
+            {
+                Excel excel = new Excel(_form.Id, (await _formRepository.FindFormByID(formId)).SheetIndex);
+                foreach (var item in tHING)
+                {
+                    if (!String.IsNullOrEmpty(item.Value))
+                    {
+                        var aDDRESS = item.Address.Split('-');
+                        var row = int.Parse(aDDRESS[0]);
+                        var column = int.Parse(aDDRESS[1]);
+                        if (!await excel.WriteToCell(row, column, item.Value))
+                        {
+                            return BadRequest($"<b>Lỗi import Excel</b>");
+                        }
+                    }
+                }
+                excel.Close();
             }
 
             return Success($"Biểu mẫu của bạn đã được gửi <b>thành công</b>");
@@ -499,9 +733,7 @@ namespace CoreApi.Controllers
             //    }
             //}
             var dateTime = DateTimeOffset.Now;            
-
-            Comment cOMMENT = new Comment(formId, cONTENT, dateTime, rEPLY, GetCurrentUserId());
-            if (!await _commentRepository.InsertInto(cOMMENT))
+            if (!await _commentRepository.InsertInto(new Comment(formId, cONTENT, dateTime, rEPLY, GetCurrentUserId())))
             {
                 return null;
             }
@@ -530,44 +762,7 @@ namespace CoreApi.Controllers
                 return false;
             }
             return true;
-        }
-
-        [HttpPost("{formId}")]
-        public async Task<DataResponse> DeclineForm(string formId, [FromBody] List<Thing> tHING)
-        {
-            if (tHING.Count > 0)
-            {
-                Excel excel = new Excel(formId, (await _formRepository.FindFormByID(formId)).SheetIndex);
-                foreach (var item in tHING)
-                {
-                    if (!String.IsNullOrEmpty(item.Value))
-                    {
-                        var aDDRESS = item.Address.Split('-');
-                        var row = int.Parse(aDDRESS[0]);
-                        var column = int.Parse(aDDRESS[1]);
-                        if (!await excel.WriteToCell(row, column, item.Value))
-                        {
-                            return BadRequest($"<b>Lỗi import Excel</b>");
-                        }
-                    }
-                }
-                excel.Close();
-            }
-
-            var current_Step = await _userFormRepository.GetFormStepDataAsync(formId);
-            
-            if (!await _formStepRepository.UpdateFormSteps(current_Step.CurrentStepId, 0))
-            {
-                return BadRequest($"<b>Lỗi Update FormSteps table</b>");
-            }
-
-            if (!(await _formRepository.UpdateFormAsync(formId, 0)))
-            {
-                return BadRequest($"<b>Lỗi Update Forms table</b>");
-            }            
-
-            return Success($"Biểu mẫu của bạn đã được gửi <b>thành công</b>");
-        }
+        }        
 
         public class Thing
         {
@@ -575,140 +770,197 @@ namespace CoreApi.Controllers
             public string Value { get; set; }
         }
 
-        public class infoPermission
-        {
-            public string iD { get; set; }
-            public string nAME { get; set; }
-            public string dESCRIPTION { get; set; }
-            public string publishDate { get; set; }
-            public string closeDate { get; set; }
-            public string sheetIndex { get; set; }
-            public string viewPermissions { get; set; }
-            public List<pERMISSION> pERMISSIONs { get; set; }
-        }
+        //public class _fORM
+        //{
+        //    public string iD { get; set; }
+        //    public string nAME { get; set; }
+        //    public string dESCRIPTION { get; set; }
+        //    public string publishDate { get; set; }
+        //    public string closeDate { get; set; }
+        //    public string sheetIndex { get; set; }
+        //    public string viewPermissions { get; set; }
+        //    public List<pERMISSION> pERMISSIONs { get; set; }
+        //}
 
-        public class pERMISSION
-        {
-            public string nAME { get; set; }
-            public string empCode { get; set; }
-            public string availableFrom { get; set; }
-            public string expireIn { get; set; }            
-            public string isAllowSendEmail { get; set; }
-        }
+        //public class formStep
+        //{
+        //    public string nAME { get; set; }
+        //    public string groupIds { get; set; }
+        //    public string availableFrom { get; set; }
+        //    public string expireIn { get; set; }            
+        //    public string isAllowSendEmail { get; set; }
+        //    public string viewPermissions { get; set; }
+        //}
 
         
 
         [HttpPost]
-        public async Task<DataResponse> SendRequestAsync([FromBody] infoPermission infoPermission)
-        {
-            var fileType = infoPermission.iD.Split('.');
-            if (await _formRepository.FindFormByID(fileType[0]) !=  null)
+        public async Task<DataResponse> SendRequestAsync([FromBody] List<FormStep> _formStep)
+        {            
+            var fileType = _formStep[0].Form.Id.Split('.');//_formStep[0].Form.Split('.');
+            if (await _formRepository.FindFormByID(fileType[0]) != null)
             {
-                return BadRequest($"<b>Tên File đã có trong dữ liệu</b>");                
-            }            
-            Form _form = new Form();
-            //fileType input
-            _form.Id = fileType[0];// infoPermission[0].Remove(infoPermission[0].IndexOf("."));
-            //form_Name input
-            _form.Name = infoPermission.nAME;
-            //dESCRIPTION input
-            _form.Description = infoPermission.dESCRIPTION;
-            //date_Start input
-            _form.PublishDate = DateTimeOffset.Parse(infoPermission.publishDate);
-            //date_End input
-            _form.CloseDate = DateTimeOffset.Parse(infoPermission.closeDate);//new DateTime(long.Parse(pERMISSION[1]));
-            _form.DateCreated = DateTime.Now;
-            //fileType input
-            _form.FileType = fileType[1];
-            //sHEET input
-            _form.SheetIndex = int.Parse(infoPermission.sheetIndex);
-            //viewPermission
-            _form.ViewPermissions = infoPermission.viewPermissions;
-            if (!await _formRepository.Insert_Into(_form))
+                return BadRequest($"<b>Tên File đã có trong dữ liệu</b>");
+            }
+            ////fileType input
+            //_form.Id = fileType[0];// infoPermission[0].Remove(infoPermission[0].IndexOf("."));
+            ////form_Name input
+            //_form.Name = infoPermission.nAME;
+            ////dESCRIPTION input
+            //_form.Description = infoPermission.dESCRIPTION;
+            ////date_Start input
+            //_form.PublishDate = DateTimeOffset.Parse(infoPermission.publishDate);
+            ////date_End input
+            //_form.CloseDate = DateTimeOffset.Parse(infoPermission.closeDate);//new DateTime(long.Parse(pERMISSION[1]));
+            //_form.DateCreated = DateTime.Now;
+            ////fileType input
+            //_form.FileType = fileType[1];
+            ////sHEET input
+            //_form.SheetIndex = int.Parse(infoPermission.sheetIndex);
+            ////viewPermission
+            //_form.ViewPermissions = infoPermission.viewPermissions;
+            //_form.Confirm = -1;
+
+            var _viewPermissions = _formStep[0].Form.ViewPermissions.Split(';');
+            var ViewPermissions = "";
+            foreach (var j in _viewPermissions)
             {
-                return BadRequest($"<b>Lỗi Insert Form table</b>");                
+                if (j.Length > 0)
+                {                    
+                    var _persons = j.Split('-');
+                    if (_persons[2].Trim() == "Employee")
+                    {
+                        ViewPermissions = ViewPermissions + _persons[0].Trim() + "|||;";
+                    }
+                    else if (_persons[2].Trim() == "Position")
+                    {
+                        ViewPermissions = ViewPermissions + "|" + _persons[0].Trim() + "||;";
+                    }
+                    else if (_persons[2].Trim() == "Level1")
+                    {
+                        ViewPermissions = ViewPermissions + "||" + _persons[0].Trim() + "|;";
+                    }
+                    else if (_persons[2].Trim() == "Level2")
+                    {
+                        ViewPermissions = ViewPermissions + "|||" + _persons[0].Trim() + ";";
+                    }                    
+                }
+            }
+            if (!await _formRepository.InsertInto(new Form(fileType[0], _formStep[0].Form.Name,
+                                                          _formStep[0].Form.Description,
+                                                          _formStep[0].Form.SheetIndex, fileType[1],
+                                                          _formStep[0].Form.PublishDate,
+                                                          _formStep[0].Form.CloseDate,
+                                                          DateTime.Now,
+                                                          ViewPermissions,
+                                                          -1)))
+            {
+                return BadRequest($"<b>Lỗi Insert Form table</b>");
             }
 
-            FormStep _formStep = new FormStep();
-            _formStep.FormId = fileType[0];
-            _formStep.DateCreated = DateTime.Now;
-            _formStep.DateUpdated = DateTime.Now;
-            _formStep.Confirm = -1;
+            FormStep formStep = new FormStep();
+            formStep.FormId = fileType[0];
+            formStep.DateCreated = DateTime.Now;
+            formStep.DateUpdated = DateTime.Now;
+            formStep.Confirm = -1;
 
             var iNDEX = 0;
-            for (int i = 0; i < infoPermission.pERMISSIONs.Count; i++)
+            for (int i = 0; i < _formStep.Count; i++)
             {
                 iNDEX++;
                 //insert Id
-                _formStep.Id = fileType[0] + "_" + iNDEX;
-                if (infoPermission.pERMISSIONs[i].nAME.Equals("Edit"))
-                {                                        
+                formStep.Id = fileType[0] + "_" + iNDEX;
+                if (_formStep[i].Name.Equals("Edit"))
+                {
                     //insert Name
-                    _formStep.Name = "Đánh giá";
+                    formStep.Name = "Điều chỉnh";
                     //insert Description
-                    _formStep.Description = "Đánh giá " + fileType[0];                    
+                    formStep.Description = "Điều chỉnh " + fileType[0];
                 }
-                else if (infoPermission.pERMISSIONs[i].nAME.Equals("Confirm"))
-                {                    
+                else if (_formStep[i].Name.Equals("Confirm"))
+                {
                     //insert Name
-                    _formStep.Name = "Xét duyệt";
+                    formStep.Name = "Xét duyệt";
                     //insert Description
-                    _formStep.Description = "Xét duyệt " + fileType[0];                    
+                    formStep.Description = "Xét duyệt " + fileType[0];
                 }
 
-                else if (infoPermission.pERMISSIONs[i].nAME.Equals("View"))
-                {                    
+                else if (_formStep[i].Name.Equals("Opinion"))
+                {
                     //insert Name
-                    _formStep.Name = "Kết thúc";
+                    formStep.Name = "Ý kiến";
                     //insert Description
-                    _formStep.Description = "Kết thúc " + fileType[0];                    
+                    formStep.Description = "Ý kiến " + fileType[0];
                 }
                 //insert Claims
-                _formStep.Claims = infoPermission.pERMISSIONs[i].nAME;
+                formStep.Claims = _formStep[i].Name;
                 //insert GroupsId
-                _formStep.GroupIds = infoPermission.pERMISSIONs[i].empCode;
+                var _groupIds = _formStep[i].GroupIds.Split(';');
+                foreach (var j in _groupIds)
+                {
+                    if(j.Length > 0)
+                    {
+                        var _persons = j.Split('-');
+                        if (_persons[2].Trim() == "Employee")
+                        {
+                            formStep.GroupIds = formStep.GroupIds + _persons[0].Trim() + "|||;";
+                        }
+                        else if (_persons[2].Trim() == "Position")
+                        {
+                            formStep.GroupIds = formStep.GroupIds + "|" + _persons[0].Trim() + "||;";
+                        }
+                        else if (_persons[2].Trim() == "Level1")
+                        {
+                            formStep.GroupIds = formStep.GroupIds + "||" + _persons[0].Trim() + "|;";
+                        }
+                        else if (_persons[2].Trim() == "Level2")
+                        {
+                            formStep.GroupIds = formStep.GroupIds + "|||" + _persons[0].Trim() + ";";
+                        }
+                    }                                      
+                }
+                //formStep.GroupIds = _formStep[i].GroupIds;
                 //insert Index
-                _formStep.Index = iNDEX;
+                formStep.Index = iNDEX;
                 //insert AvailableFrom
-                _formStep.AvailableFrom = DateTimeOffset.Parse(infoPermission.pERMISSIONs[i].availableFrom);
+                formStep.AvailableFrom = _formStep[i].AvailableFrom;
                 //insert ExpireIn
-                _formStep.ExpireIn = DateTimeOffset.Parse(infoPermission.pERMISSIONs[i].expireIn);
+                formStep.ExpireIn = _formStep[i].ExpireIn;
 
                 //insert NextStepId
                 if (i == 0)
                 {
-                    _formStep.PrevStepId = null;
-                    _formStep.NextStepId = _form.Id + "_" + (iNDEX + 1).ToString();
+                    formStep.PrevStepId = null;
+                    formStep.NextStepId = fileType[0] + "_" + (iNDEX + 1).ToString();
                 }
-                else if (i == infoPermission.pERMISSIONs.Count - 1)
+                else if (i == _formStep.Count - 1)
                 {
-                    _formStep.PrevStepId = _form.Id + "_" + (iNDEX - 1).ToString();
-                    _formStep.NextStepId = null;
+                    formStep.PrevStepId = fileType[0] + "_" + (iNDEX - 1).ToString();
+                    formStep.NextStepId = null;
                 }
                 else
                 {
-                    _formStep.PrevStepId = _form.Id + "_" + (iNDEX - 1).ToString();
-                    _formStep.NextStepId = _form.Id + "_" + (iNDEX + 1).ToString();
+                    formStep.PrevStepId = fileType[0] + "_" + (iNDEX - 1).ToString();
+                    formStep.NextStepId = fileType[0] + "_" + (iNDEX + 1).ToString();
                 }
 
                 //insert IsAllowSendEmail
-                _formStep.IsAllowSendEmail = bool.Parse(infoPermission.pERMISSIONs[i].isAllowSendEmail);
+                formStep.IsAllowSendEmail = _formStep[i].IsAllowSendEmail;
 
-                if (!await _formStepRepository.Insert_Into(_formStep))
-                {                    
+                if (!await _formStepRepository.InsertInto(formStep))
+                {
                     return BadRequest($"<b>Lỗi Insert Form table</b>");
-                }                
+                }
             }
 
-            UserForm userForm = new UserForm();
-            userForm.FormId = fileType[0];
-            userForm.UserId = await _employeeRepository.GetUserID(GetCurrentUserEmpCode());
-            userForm.CurrentStepId = _form.Id + "_1";
-            userForm.AvailableFrom = DateTimeOffset.Parse(infoPermission.pERMISSIONs[0].availableFrom);
-            userForm.DateCreated = DateTime.Now;
-            userForm.ExpireIn = DateTimeOffset.Parse(infoPermission.pERMISSIONs[0].expireIn);
-            if (!(await _userFormRepository.Insert_Into(userForm)))
-            {                
+            if (!await _userFormRepository.InsertInto(new UserForm(fileType[0],
+                                                        await _employeeRepository.GetUserID(GetCurrentUserEmpCode()),
+                                                        null,
+                                                        fileType[0] + "_1",
+                                                        _formStep[0].AvailableFrom,
+                                                        _formStep[0].ExpireIn,
+                                                        DateTime.Now)))
+            {
                 return BadRequest($"<b>Lỗi Insert UserForms table</b>");
             }
             return Success($"Biểu mẫu của bạn đã được gửi <b>thành công</b>");
@@ -727,6 +979,7 @@ namespace CoreApi.Controllers
                     using (var fileStream = new FileStream(Path.Combine(folderDataPath, $"{fileType.FileName}"), FileMode.Create))
                     {
                         await fileType.CopyToAsync(fileStream);
+                        fileStream.Close();
                     }
                 }
                 return true;
@@ -2162,69 +2415,7 @@ namespace CoreApi.Controllers
         private async Task<IList<Employee>> GetManagersAsync(string empCode)
         {
             return await _employeeRepository.GetManagersOfEmpCodeAsync(empCode);
-        }
-
-        [HttpGet("{formId}/confirm")]
-        public async Task<IActionResult> Contact(string formId)
-        {
-            var vm = new FormViewModel()
-            {
-                FormId = formId
-            };
-
-            var form = await _formRepository.FindByIdAsync(formId);
-            if (form != null)
-            {
-                var userForm = await _userFormRepository.GetFormDataAsync(formId, GetCurrentUserId());
-                var steps = await _formStepRepository.GetFromStepsByFormIdAsync(formId);
-                var confirmStep = steps?.FirstOrDefault(x => x.Claims.Equals(FormStepActionType.Confirm.ToString()) && x.Confirm == -1);
-
-                // Check permission for editable
-                var result = await _formStepRepository.IsGrantPermissionForThisStepAsync(confirmStep, GetCurrentUserEmpCode(), userForm);
-
-                //// Check form view permission
-                //if (result != null && !result.IsGrant)
-                //{
-                //    result.IsGrant = _formRepository.IsGrantPermissionForView(form, result.EmployeeDetails);
-                //}
-                result.IsGrant = true;
-
-                if (result != null && result.IsGrant)
-                {
-                    // Passed
-                    var folderDataPath = Path.Combine(_environment.ContentRootPath, "MyFolder");
-                    var fileFormPath = Path.Combine(folderDataPath, $"{formId}.{form.FileType}");
-
-                    if (System.IO.File.Exists(fileFormPath))
-                    {
-                        //vm.IsAllowEditable = result.IsAllow;
-                        vm.IsAllowEditable = true;
-
-                        var htmlForm = await ProcessExcelToHtmlAsync(fileFormPath, formId, form.SheetIndex, result.UserForm, GetCurrentUserEmpCode(), vm.IsAllowEditable);
-
-                        vm.Steps = steps;
-                        //vm.CurrentStepIndex = result.CurrentStep != null ? steps.IndexOf(result.CurrentStep) + 1 : 1;
-                        vm.CurrentStepIndex = confirmStep.Index;
-                        vm.FormHtmlContent = htmlForm;
-                        vm.Name = form.Name;
-                        vm.Description = form.Description;
-                        vm.StepsDetails = new List<FormStepDetailsViewModel>();
-
-                        vm.StepsDetails = await BuildMilestoneTimeline(userForm, steps, vm.CurrentStepIndex);
-
-                        return View(vm);
-                    }
-                    else
-                    {
-                        //_log.LogError("Error cant not found Form file in UserData folder.");
-                    }
-                }
-            }
-
-            ModelState.AddModelError("form", "Lỗi không tìm thấy biểu mẫu, vui lòng liên hệ bộ phận hỗ trợ.");
-            vm.Name = "Có lỗi xảy ra";
-            return View(vm);
-        }
+        }        
 
         [HttpGet("{formId}")]
         public async Task<IList<Comment>> GetCommentByFormID(string formId)
@@ -2240,5 +2431,28 @@ namespace CoreApi.Controllers
             return await _commentRepository.GetCommentByFormID(formId);
         }
 
+        [HttpGet]
+        public async Task<IList<Employee>> GetAllPosition()
+        {
+            return await _employeeRepository.GetAllPosition();                        
+        }
+
+        [HttpGet]
+        public async Task<IList<Employee>> GetAllLevel1()
+        {
+            return await _employeeRepository.GetAllLevel1();                        
+        }
+
+        [HttpGet]
+        public async Task<IList<Employee>> GetAllLevel2()
+        {
+            return await _employeeRepository.GetAllLevel2();            
+        }
+
+        [HttpGet]
+        public async Task<IList<Employee>> GetAllEmployees()
+        {
+            return await _employeeRepository.GetAllAsync();
+        }
     }
 }

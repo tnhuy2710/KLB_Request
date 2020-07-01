@@ -183,7 +183,15 @@ namespace CoreApi.Controllers
             if (claim != null) return claim.Value;
 
             return string.Empty;
-        }        
+        }
+
+        public string DailyUpdate()
+        {
+            var claim = User?.FindFirst(x => x.Type.Equals(ClaimContants.EmpCode));
+            if (claim != null) return claim.Value;
+
+            return string.Empty;
+        }
 
     }
 }
